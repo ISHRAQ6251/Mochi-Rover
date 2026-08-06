@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f1117">
+<title>Mochi Rover</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <div id="authGate" class="overlay hidden">
+    <div class="card">
+      <h2>Mochi Rover</h2>
+      <p class="muted">Enter the access token shown in the rover settings to unlock the cockpit.</p>
+      <input id="authToken" type="password" placeholder="access token" autocomplete="off" spellcheck="false">
+      <button id="authBtn" class="primary">Unlock</button>
+      <div id="authErr" class="err"></div>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="video-wrap">
+      <img id="video" alt="live camera feed">
+      <div class="scanlines"></div>
+      <div class="video-fallback muted hidden">Camera offline</div>
+    </div>
+
+    <header id="topbar">
+      <div class="brand">Mochi Rover</div>
+      <div class="chips">
+        <span id="chipMochi" class="chip chip-mochi">MOCHI</span>
+        <span id="chipCtrl" class="chip">CTRL</span>
+        <span id="chipCam" class="chip">CAM</span>
+      </div>
+      <div class="top-actions">
+        <button id="flashBtn" class="icon" title="flashlight">Light</button>
+        <button id="animBtn" class="icon" title="oled animation">Eyes</button>
+        <button id="settingsBtn" class="icon" title="settings">Gear</button>
+      </div>
+    </header>
+
+    <div id="steering" class="pad" title="steering">
+      <div class="pad-grid"></div>
+      <div id="steerKnob" class="knob"></div>
+      <div class="pad-label">STEERING</div>
+    </div>
+
+    <div id="throttle" class="pad" title="throttle">
+      <div class="pad-track"></div>
+      <div id="throttleKnob" class="knob"></div>
+      <div class="pad-label">THROTTLE</div>
+    </div>
+
+    <button id="stopBtn" class="stop" title="emergency stop">STOP</button>
+
+    <footer id="deck">
+      <div id="moodRow">
+        <button class="mood" data-mood="happy">Happy</button>
+        <button class="mood" data-mood="angry">Angry</button>
+        <button class="mood" data-mood="curious">Curious</button>
+        <button class="mood" data-mood="dead">Dead</button>
+        <button class="mood" data-mood="sleepy">Sleepy</button>
+        <button class="mood" data-mood="wink">Wink</button>
+      </div>
+      <div id="moodRow2">
+        <button class="mood" data-mood="sad">Sad</button>
+        <button class="mood" data-mood="crying">Crying</button>
+        <button class="mood" data-mood="confused">Confused</button>
+        <button class="mood" data-mood="love">Love</button>
+        <button class="mood" data-mood="blink">Blink</button>
+        <button class="mood" data-mood="idle">Idle</button>
+      </div>
+      <div class="msg-row">
+        <input id="msgInput" maxlength="32" placeholder="Message to OLED" autocomplete="off">
+        <button id="msgSend">Send</button>
+        <button id="msgClear" class="clear-btn">Clear</button>
+      </div>
+      <div class="speed-row">
+        <label for="speed">Speed:</label>
+        <input id="speed" type="range" min="0" max="255" value="255" step="1">
+        <output id="speedVal">255</output>
+      </div>
+    </footer>
+  </div>
+
+  <div id="settingsModal" class="overlay hidden">
+    <div class="card">
+      <h2>Connection Settings</h2>
+      <label>Rover IP / Domain</label>
+      <input id="setIp" placeholder="192.168.4.1" spellcheck="false">
+      <label>Target Wi-Fi SSID</label>
+      <input id="setSsid" placeholder="SSID" autocomplete="off" spellcheck="false">
+      <label>Target Wi-Fi Password</label>
+      <input id="setPass" type="password" placeholder="password" autocomplete="off">
+      <label>Interface Theme</label>
+      <select id="setTheme">
+        <option value="dark">Dark Mode</option>
+        <option value="light">Light Mode</option>
+      </select>
+      <hr>
+      <h3>Camera</h3>
+      <label>Resolution</label>
+      <select id="setRes">
+        <option value="8">VGA 640x480</option>
+        <option value="9">SVGA 800x600</option>
+        <option value="10">XGA 1024x768</option>
+        <option value="11">HD 1280x720</option>
+        <option value="12">SXGA 1280x1024</option>
+        <option value="13">UXGA 1600x1200</option>
+      </select>
+      <label>Quality (10 best .. 63 worst)</label>
+      <input id="setQuality" type="number" min="10" max="63" value="12">
+      <label>Frame rate (fps)</label>
+      <input id="setFps" type="number" min="5" max="60" value="25">
+      <label>Stream format</label>
+      <select id="setFormat">
+        <option value="1">JPEG (MJPEG)</option>
+        <option value="0">BMP</option>
+      </select>
+      <label>OLED animation</label>
+      <select id="setAnim">
+        <option value="1">On</option>
+        <option value="0">Off</option>
+      </select>
+      <hr>
+      <h3>Access Token</h3>
+      <input id="setToken" type="password" placeholder="new token (optional)" autocomplete="off">
+      <div class="modal-actions">
+        <button id="settingsSave" class="primary">Save</button>
+        <button id="settingsCancel">Cancel</button>
+      </div>
+      <div id="settingsMsg" class="err"></div>
+    </div>
+  </div>
+
+<script src="/app.js"></script>
+</body>
+</html>
