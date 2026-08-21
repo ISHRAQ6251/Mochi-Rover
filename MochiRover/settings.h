@@ -7,10 +7,9 @@ struct RoverSettings {
     char wifiPass[65] = {0};
     char authToken[33] = {0};
 
-    int camResolution = 8;    // framesize_t: 8 = FRAMESIZE_VGA
+    int camResolution = 9;    // framesize_t: 9 = FRAMESIZE_SVGA (800x600)
     int camQuality = 12;      // JPEG quality 10..63 (lower = better)
-    int camFps = 25;
-    int camFormat = 1;        // 1 = JPEG (MJPEG stream), 0 = BMP fallback
+    bool camFlip = false;     // mirror + vflip the image
 
     bool flashlightOn = false;
     bool oledAnim = true;
@@ -29,7 +28,8 @@ public:
     void setWifi(const char* ssid, const char* pass);
     bool hasWifi() const;
     void setToken(const char* token);
-    void setCamera(int resolution, int quality, int fps, int format);
+    void setCamera(int resolution, int quality);
+    void setCamFlip(bool flip);
     void setFlashlight(bool on);
     void setOledAnim(bool on);
 

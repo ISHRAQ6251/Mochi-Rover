@@ -26,15 +26,10 @@ static void unauthorized(AsyncWebServerRequest* request) {
 static MochiMood parseMood(const String& s) {
     if (s == "happy") return MochiMood::HAPPY;
     if (s == "angry") return MochiMood::ANGRY;
-    if (s == "sad") return MochiMood::SAD;
-    if (s == "crying") return MochiMood::CRYING;
+    if (s == "curious") return MochiMood::CURIOUS;
     if (s == "dead") return MochiMood::DEAD;
-    if (s == "confused") return MochiMood::CONFUSED;
     if (s == "sleepy") return MochiMood::SLEEPY;
     if (s == "wink") return MochiMood::WINK;
-    if (s == "blink") return MochiMood::BLINK;
-    if (s == "curious") return MochiMood::CURIOUS;
-    if (s == "love") return MochiMood::LOVE;
     return MochiMood::IDLE;
 }
 
@@ -64,12 +59,10 @@ static String stateJson() {
     s += "\"oledAnim\":" + String(settings.data.oledAnim ? "true" : "false") + ",";
     s += "\"camResolution\":" + String(settings.data.camResolution) + ",";
     s += "\"camQuality\":" + String(settings.data.camQuality) + ",";
-    s += "\"camFps\":" + String(settings.data.camFps) + ",";
-    s += "\"camFormat\":" + String(settings.data.camFormat) + ",";
+    s += "\"camFlip\":" + String(settings.data.camFlip ? "true" : "false") + ",";
     s += "\"connected\":" + String(wifiHelper.isConnected() ? "true" : "false") + ",";
     s += "\"apMode\":" + String(wifiHelper.isApMode() ? "true" : "false") + ",";
     s += "\"ip\":\"" + wifiHelper.ip() + "\",";
-    s += "\"ssid\":\"" + String(settings.data.wifiSSID) + "\",";
     s += "\"messageActive\":" + String(displayMgr.messageActive() ? "true" : "false") + ",";
     s += "\"message\":\"" + jsonEscape(displayMgr.message()) + "\"";
     s += "}";
@@ -100,6 +93,7 @@ void WebServerMgr::begin() {
         s += "\"ok\":true,";
         s += "\"apMode\":" + String(wifiHelper.isApMode() ? "true" : "false") + ",";
         s += "\"connected\":" + String(wifiHelper.isConnected() ? "true" : "false") + ",";
+        s += "\"haveSaved\":" + String(wifiHelper.haveSaved() ? "true" : "false") + ",";
         s += "\"ip\":\"" + wifiHelper.ip() + "\",";
         s += "\"hostname\":\"" HOSTNAME "\"";
         s += "}";
@@ -113,6 +107,18 @@ void WebServerMgr::begin() {
         } else {
             request->send(401, "application/json", "{\"ok\":false}");
         }
+    });
+
+    // Wi-Fi provisioning. Open only while in AP mode (first-time setup portal);
+    // once the rover is on a network this endpoint requires the auth token.
+    _server.on("/api/wifi", HTTP_POST, [](AsyncWebServerRequest* request) {
+        if (!wifiHelper.isApMode() && !authorized(request)) {
+            return unauthorized(request);
+        }
+        String ssid = request->hasParam("ssid", true) ? request->getParam("ssid", true)->value() : "";
+        String pass = request->hasParam("pass", true) ? request->getParam("pass", true)->value() : "";
+        wifiHelper.apply(ssid.c_str(), pass.c_str());
+        request->send(200, "application/json", "{\"ok\":true,\"reconnecting\":true}");
     });
 
     // ---------- protected endpoints ----------
@@ -177,28 +183,18 @@ void WebServerMgr::begin() {
             settings.setOledAnim(request->getParam("oledAnim", true)->value() == "1");
             eyes.setAnimEnabled(settings.data.oledAnim);
         }
-        bool camChanged = false;
-        int res = settings.data.camResolution;
-        int quality = settings.data.camQuality;
-        int fps = settings.data.camFps;
-        int format = settings.data.camFormat;
-        if (request->hasParam("resolution", true)) { res = request->getParam("resolution", true)->value().toInt(); camChanged = true; }
-        if (request->hasParam("quality", true)) { quality = request->getParam("quality", true)->value().toInt(); camChanged = true; }
-        if (request->hasParam("fps", true)) { fps = request->getParam("fps", true)->value().toInt(); camChanged = true; }
-        if (request->hasParam("format", true)) { format = request->getParam("format", true)->value().toInt(); camChanged = true; }
-        if (camChanged) {
-            settings.setCamera(res, quality, fps, format);
-            cameraServer.applySettings();
-        }
         request->send(200, "application/json", "{\"ok\":true}");
     });
 
-    _server.on("/api/wifi", HTTP_POST, [](AsyncWebServerRequest* request) {
+    _server.on("/api/camera", HTTP_POST, [](AsyncWebServerRequest* request) {
         if (!authorized(request)) return unauthorized(request);
-        String ssid = request->hasParam("ssid", true) ? request->getParam("ssid", true)->value() : "";
-        String pass = request->hasParam("pass", true) ? request->getParam("pass", true)->value() : "";
-        wifiHelper.apply(ssid.c_str(), pass.c_str());
-        request->send(200, "application/json", "{\"ok\":true,\"reconnecting\":true}");
+        if (request->hasParam("flip", true)) {
+            settings.setCamFlip(request->getParam("flip", true)->value() == "1");
+            cameraServer.applySettings();
+            request->send(200, "application/json", "{\"ok\":true}");
+            return;
+        }
+        request->send(400, "application/json", "{\"ok\":false,\"error\":\"bad param\"}");
     });
 
     _server.on("/api/token", HTTP_POST, [](AsyncWebServerRequest* request) {

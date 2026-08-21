@@ -9,8 +9,8 @@ const state = {
   speedScale: 255,
   mood: "idle",
   flashlight: false,
-  oledAnim: true,
-  dragging: false,
+  flip: false,
+  camAliveAt: 0,
 };
 
 const authHeaders = () => ({ "X-Auth-Token": state.token });
@@ -29,7 +29,54 @@ async function api(path, body) {
   }
 }
 
-/* ---------------- auth gate ---------------- */
+function applyTheme(t) {
+  document.documentElement.classList.toggle("light", t === "light");
+}
+applyTheme(localStorage.getItem("mochi_theme") || "dark");
+
+/* ---------------- boot flow ---------------- */
+async function boot() {
+  const info = await api("/api/info");
+  if (info.ok && info.data.apMode) {
+    $("setupGate").classList.remove("hidden");
+    return;
+  }
+  if (!state.token) {
+    $("authGate").classList.remove("hidden");
+    return;
+  }
+  const r = await api("/api/state");
+  if (r.ok) {
+    $("app").classList.remove("hidden");
+    initCockpit(r.data);
+  } else {
+    $("authGate").classList.remove("hidden");
+  }
+}
+
+/* ---------------- provisioning ---------------- */
+$("setupSave").addEventListener("click", async () => {
+  const ssid = $("setupSsid").value.trim();
+  const pass = $("setupPass").value;
+  if (!ssid) { $("setupMsg").textContent = "Enter a Wi-Fi SSID."; return; }
+  $("setupMsg").textContent = "Connecting, please wait...";
+  const r = await api("/api/wifi", { ssid, pass });
+  if (!r.ok) { $("setupMsg").textContent = "Failed to save. Try again."; return; }
+  const t0 = Date.now();
+  const poll = setInterval(async () => {
+    const info = await api("/api/info");
+    if (info.ok && info.data.connected && !info.data.apMode) {
+      clearInterval(poll);
+      $("setupMsg").textContent = "Connected! Loading cockpit...";
+      setTimeout(() => location.reload(), 800);
+    } else if (Date.now() - t0 > 30000) {
+      clearInterval(poll);
+      $("setupMsg").textContent = "Could not reach the network. Check credentials and try again.";
+    }
+  }, 1500);
+});
+
+/* ---------------- auth ---------------- */
 async function unlock() {
   const t = $("authToken").value.trim();
   if (!t) return;
@@ -38,104 +85,178 @@ async function unlock() {
     state.token = t;
     localStorage.setItem("mochi_token", t);
     $("authGate").classList.add("hidden");
-    $("app").classList.remove("hidden");
     $("authErr").textContent = "";
-    init();
+    const st = await api("/api/state");
+    $("app").classList.remove("hidden");
+    initCockpit(st.ok ? st.data : {});
   } else {
     $("authErr").textContent = "Wrong token. Try again.";
   }
 }
+$("authBtn").addEventListener("click", unlock);
+$("authToken").addEventListener("keydown", (e) => { if (e.key === "Enter") unlock(); });
 
 /* ---------------- video ---------------- */
 function startVideo() {
   const v = $("video");
-  v.onload = () => { $("video").classList.remove("hidden"); };
+  v.onload = () => { state.camAliveAt = Date.now(); $("video").classList.remove("hidden"); };
   v.onerror = () => {
-    $("video").classList.add("hidden");
     setTimeout(() => { v.src = "/stream?t=" + Date.now(); }, 2500);
   };
   v.src = "/stream?t=" + Date.now();
 }
-
-/* ---------------- drive ---------------- */
-const steer = $("steering");
-const throttlePad = $("throttle");
-const steerKnob = $("steerKnob");
-const throttleKnob = $("throttleKnob");
-
-function sendDrive() {
-  api("/api/drive", { throttle: state.throttle, steering: state.steering });
+function refreshVideo() {
+  const v = $("video");
+  v.src = "/stream?t=" + Date.now();
 }
 
-function updateKnob(knob, cx, cy, maxR, ox, oy) {
-  knob.style.transform = `translate(calc(${cx}px - 50%), calc(${cy}px - 50%))`;
-}
-
-function attachPad(pad, knob, onValue, maxR, vertical) {
-  const down = (e) => {
-    state.dragging = true;
-    pad.setPointerCapture(e.pointerId);
-    move(e);
-  };
-  const move = (e) => {
-    if (!state.dragging) return;
-    const rect = pad.getBoundingClientRect();
-    const cx = rect.width / 2;
-    const cy = rect.height / 2;
-    let dx = e.clientX - rect.left - cx;
-    let dy = e.clientY - rect.top - cy;
-    if (vertical) dx = 0; else dy = 0;
-    const dist = Math.hypot(dx, dy);
-    if (dist > maxR) {
-      dx = (dx / dist) * maxR;
-      dy = (dy / dist) * maxR;
-    }
-    updateKnob(knob, dx, dy, maxR);
-    onValue(dx, dy, maxR);
-  };
-  const up = (e) => {
-    if (!state.dragging) return;
-    state.dragging = false;
-    knob.style.transform = `translate(-50%, -50%)`;
-    onValue(0, 0, maxR);
-  };
-  pad.addEventListener("pointerdown", down);
-  pad.addEventListener("pointermove", move);
-  pad.addEventListener("pointerup", up);
-  pad.addEventListener("pointercancel", up);
-}
-
-attachPad(steer, steerKnob, (dx) => {
-  state.steering = Math.round((dx / 65) * 255);
-  sendDrive();
-}, 65, false);
-
-attachPad(throttlePad, throttleKnob, (dx, dy) => {
-  // up = forward (negative dy)
-  const raw = Math.round((-dy / 80) * 255);
-  state.throttle = Math.round((raw * state.speedScale) / 255);
-  sendDrive();
-}, 80, true);
-
-$("stopBtn").addEventListener("pointerdown", () => {
-  state.throttle = 0;
-  state.steering = 0;
-  steerKnob.style.transform = `translate(-50%, -50%)`;
-  throttleKnob.style.transform = `translate(-50%, -50%)`;
-  api("/api/stop", {});
+$("flipBtn").addEventListener("click", async () => {
+  state.flip = !state.flip;
+  await api("/api/camera", { flip: state.flip ? 1 : 0 });
+  refreshVideo();
 });
 
-/* ---------------- speed slider ---------------- */
+$("photoBtn").addEventListener("click", async () => {
+  try {
+    const res = await fetch("/capture?t=" + Date.now(), { headers: authHeaders() });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const a = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = "mochi_" + new Date().toISOString().replace(/[:.]/g, "-") + ".jpg";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+  } catch (e) { /* ignore */ }
+});
+
+/* ------- clip recording (client-side MediaRecorder) ------- */
+let recorder = null;
+let recCanvas = null;
+let recRaf = 0;
+
+function pickMime() {
+  const m = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm"];
+  for (const c of m) { if (window.MediaRecorder && MediaRecorder.isTypeSupported(c)) return c; }
+  return "";
+}
+
+function downloadBlob(blob, name) {
+  const a = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+
+function stopRecording() {
+  if (recorder) {
+    recorder.stop();
+    recorder = null;
+  }
+  if (recRaf) { cancelAnimationFrame(recRaf); recRaf = 0; }
+  $("recBtn").classList.remove("recording");
+  $("videoBadge").classList.add("hidden");
+}
+
+$("recBtn").addEventListener("click", () => {
+  if (recorder) { stopRecording(); return; }
+  const v = $("video");
+  if (!v.complete || v.naturalWidth === 0) return;
+
+  recCanvas = document.createElement("canvas");
+  recCanvas.width = v.naturalWidth || 800;
+  recCanvas.height = v.naturalHeight || 600;
+  const ctx = recCanvas.getContext("2d");
+  const stream = recCanvas.captureStream(20);
+  const mime = pickMime();
+  if (!mime) { $("videoBadge").textContent = "recording unsupported"; $("videoBadge").classList.remove("hidden"); return; }
+
+  const chunks = [];
+  recorder = new MediaRecorder(stream, { mimeType: mime });
+  recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+  recorder.onstop = () => {
+    downloadBlob(new Blob(chunks, { type: mime }), "mochi_clip.webm");
+    recCanvas = null;
+  };
+  recorder.start(1000);
+
+  const draw = () => {
+    if (!recCanvas) return;
+    recCanvas.width = v.naturalWidth || recCanvas.width;
+    recCanvas.height = v.naturalHeight || recCanvas.height;
+    ctx.drawImage(v, 0, 0, recCanvas.width, recCanvas.height);
+    recRaf = requestAnimationFrame(draw);
+  };
+  draw();
+  $("recBtn").classList.add("recording");
+  $("videoBadge").textContent = "REC";
+  $("videoBadge").classList.remove("hidden");
+});
+
+/* ---------------- drive (4-button pad) ---------------- */
+const held = new Set();
+
+function computeDrive() {
+  const sp = state.speedScale;
+  let throttle = 0, steering = 0;
+  if (held.has("up")) throttle += sp;
+  if (held.has("down")) throttle -= sp;
+  if (held.has("left")) steering -= sp;
+  if (held.has("right")) steering += sp;
+  state.throttle = throttle;
+  state.steering = steering;
+  api("/api/drive", { throttle, steering });
+}
+
+function bindCtrl(id, key) {
+  const el = $(id);
+  const down = (e) => {
+    e.preventDefault();
+    if (e.pointerId !== undefined && el.setPointerCapture) {
+      try { el.setPointerCapture(e.pointerId); } catch (_) {}
+    }
+    held.add(key);
+    el.classList.add("active");
+    computeDrive();
+  };
+  const up = (e) => {
+    e.preventDefault();
+    held.delete(key);
+    el.classList.remove("active");
+    if (held.size === 0) {
+      state.throttle = 0;
+      state.steering = 0;
+      api("/api/stop", {});
+    } else {
+      computeDrive();
+    }
+  };
+  el.addEventListener("pointerdown", down);
+  el.addEventListener("pointerup", up);
+  el.addEventListener("pointercancel", up);
+  el.addEventListener("lostpointercapture", () => {
+    if (held.has(key)) up({ preventDefault() {} });
+  });
+  el.addEventListener("contextmenu", (e) => e.preventDefault());
+}
+bindCtrl("btnUp", "up");
+bindCtrl("btnDown", "down");
+bindCtrl("btnLeft", "left");
+bindCtrl("btnRight", "right");
+
+/* ---------------- speed ---------------- */
 const speedInput = $("speed");
 const speedVal = $("speedVal");
 speedInput.addEventListener("input", () => {
-  const v = parseInt(speedInput.value, 10);
-  speedVal.textContent = v;
-  state.speedScale = v;
+  state.speedScale = parseInt(speedInput.value, 10);
+  speedVal.textContent = state.speedScale;
   if (navigator.vibrate) navigator.vibrate(10);
-});
-speedInput.addEventListener("change", () => {
-  if (navigator.vibrate) navigator.vibrate(40);
 });
 
 /* ---------------- mood ---------------- */
@@ -143,74 +264,64 @@ async function setMood(m) {
   const r = await api("/api/mood", { mood: m });
   if (r.ok) {
     state.mood = m;
-    document.querySelectorAll(".mood").forEach((b) => {
-      b.classList.toggle("active", b.dataset.mood === m);
-    });
+    $("moodSelect").value = m;
   }
 }
-document.querySelectorAll(".mood").forEach((b) => {
-  b.addEventListener("click", () => setMood(b.dataset.mood));
+
+$("moodSelect").addEventListener("change", () => setMood($("moodSelect").value));
+
+$("moodBtn").addEventListener("click", () => {
+  $("moodPopup").classList.toggle("hidden");
+});
+document.querySelectorAll(".mood-opt").forEach((b) => {
+  b.addEventListener("click", () => {
+    setMood(b.dataset.mood);
+    $("moodPopup").classList.add("hidden");
+  });
+});
+document.addEventListener("pointerdown", (e) => {
+  if (!$("moodPopup").classList.contains("hidden") &&
+      !e.target.closest("#moodPopup") && e.target.id !== "moodBtn") {
+    $("moodPopup").classList.add("hidden");
+  }
 });
 
 /* ---------------- message ---------------- */
-function updateMsgState() {
-  $("msgClear").classList.toggle("active", !!state.messageActive);
-  $("msgInput").placeholder = state.messageActive
-    ? "New message replaces current"
-    : "Message to OLED";
+function updateMsgState(active) {
+  $("msgClear").classList.toggle("hidden", !active);
+  $("msgInput").placeholder = active ? "New message replaces current" : "Message to OLED...";
 }
 $("msgSend").addEventListener("click", async () => {
   const t = $("msgInput").value.trim();
   if (!t) return;
   const r = await api("/api/message", { text: t });
-  if (r.ok) state.messageActive = true;
+  if (r.ok) { updateMsgState(true); }
   $("msgInput").value = "";
-  updateMsgState();
 });
-$("msgInput").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") $("msgSend").click();
-});
+$("msgInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("msgSend").click(); });
 $("msgClear").addEventListener("click", async () => {
   const r = await api("/api/message", {});
-  if (r.ok) state.messageActive = false;
-  updateMsgState();
+  if (r.ok) updateMsgState(false);
 });
 
-/* ---------------- flash / anim ---------------- */
+/* ---------------- flash ---------------- */
 async function setFlashlight(on) {
   state.flashlight = !!on;
   const r = await api("/api/flash", { on: state.flashlight ? 1 : 0 });
   $("flashBtn").classList.toggle("on", state.flashlight);
 }
-
-async function setAnim(on) {
-  state.oledAnim = !!on;
-  await api("/api/settings", { oledAnim: state.oledAnim ? 1 : 0 });
-  $("animBtn").classList.toggle("on", state.oledAnim);
-}
-
 $("flashBtn").addEventListener("click", () => setFlashlight(!state.flashlight));
-$("animBtn").addEventListener("click", () => setAnim(!state.oledAnim));
 
 /* ---------------- settings modal ---------------- */
 function openSettings() {
-  const s = state;
-  $("setIp").value = s.ip || "";
-  $("setSsid").value = s.ssid || "";
-  $("setPass").value = "";
+  $("setIp").value = state.ip || "192.168.4.1";
   $("setTheme").value = localStorage.getItem("mochi_theme") || "dark";
-  $("setRes").value = String(s.camResolution ?? 8);
-  $("setQuality").value = s.camQuality ?? 12;
-  $("setFps").value = s.camFps ?? 25;
-  $("setFormat").value = String(s.camFormat ?? 1);
-  $("setAnim").value = s.oledAnim ? "1" : "0";
+  $("setToken").value = "";
   $("settingsMsg").textContent = "";
   $("settingsModal").classList.remove("hidden");
 }
 $("settingsBtn").addEventListener("click", openSettings);
-$("settingsCancel").addEventListener("click", () => {
-  $("settingsModal").classList.add("hidden");
-});
+$("settingsClose").addEventListener("click", () => $("settingsModal").classList.add("hidden"));
 
 $("settingsSave").addEventListener("click", async () => {
   const msg = $("settingsMsg");
@@ -218,45 +329,22 @@ $("settingsSave").addEventListener("click", async () => {
   localStorage.setItem("mochi_theme", theme);
   applyTheme(theme);
 
-  const cam = {
-    resolution: parseInt($("setRes").value, 10),
-    quality: parseInt($("setQuality").value, 10),
-    fps: parseInt($("setFps").value, 10),
-    format: parseInt($("setFormat").value, 10),
-    oledAnim: parseInt($("setAnim").value, 10),
-  };
-  let r = await api("/api/settings", cam);
-  if (!r.ok) { msg.textContent = "Camera settings failed"; return; }
-  state.camResolution = cam.resolution;
-  state.camQuality = cam.quality;
-  state.camFps = cam.fps;
-  state.camFormat = cam.format;
-  state.oledAnim = !!cam.oledAnim;
-  $("animBtn").classList.toggle("on", state.oledAnim);
-
   const newToken = $("setToken").value.trim();
   if (newToken) {
-    r = await api("/api/token", { token: newToken });
+    const r = await api("/api/token", { token: newToken });
     if (r.ok) {
       state.token = newToken;
       localStorage.setItem("mochi_token", newToken);
+      msg.textContent = "Token updated. Saved.";
+    } else {
+      msg.textContent = "Token must be at least 4 characters.";
+      return;
     }
-  }
-
-  const ssid = $("setSsid").value.trim();
-  if (ssid) {
-    const pass = $("setPass").value;
-    msg.textContent = "Wi-Fi credentials saved, reconnecting...";
-    await api("/api/wifi", { ssid, pass });
   } else {
     msg.textContent = "Saved.";
   }
-  setTimeout(() => { $("settingsModal").classList.add("hidden"); }, 1200);
+  setTimeout(() => $("settingsModal").classList.add("hidden"), 1200);
 });
-
-function applyTheme(t) {
-  document.documentElement.classList.toggle("light", t === "light");
-}
 
 /* ---------------- state polling ---------------- */
 async function pollState() {
@@ -264,77 +352,37 @@ async function pollState() {
   if (!r.ok) {
     if (r.status === 401) {
       $("app").classList.add("hidden");
-      $("authGate").classList.remove("hidden");
       localStorage.removeItem("mochi_token");
+      state.token = "";
+      $("authGate").classList.remove("hidden");
     }
     return;
   }
   const s = r.data;
   state.ip = s.ip;
-  state.ssid = s.ssid || "";
-  state.camResolution = s.camResolution;
-  state.camQuality = s.camQuality;
-  state.camFps = s.camFps;
-  state.camFormat = s.camFormat;
-  state.oledAnim = s.oledAnim;
-  state.flashlight = s.flashlightOn;
+  state.flip = !!s.camFlip;
   state.messageActive = !!s.messageActive;
-  $("flashBtn").classList.toggle("on", state.flashlight);
-  $("animBtn").classList.toggle("on", state.oledAnim);
-  updateMsgState();
-  if (s.mood !== state.mood) {
+  updateMsgState(state.messageActive);
+  $("flashBtn").classList.toggle("on", s.flashlightOn);
+  $("dotCtrl").classList.toggle("on", s.connected && !s.apMode);
+  $("dotCam").classList.toggle("on", Date.now() - state.camAliveAt < 6000);
+  if (s.mood && s.mood !== state.mood) {
     state.mood = s.mood;
-    document.querySelectorAll(".mood").forEach((b) => {
-      b.classList.toggle("active", b.dataset.mood === s.mood);
-    });
+    $("moodSelect").value = s.mood;
   }
 }
 
-/* ---------------- init ---------------- */
-async function init() {
+/* ---------------- cockpit init ---------------- */
+function initCockpit(data) {
+  state.ip = data.ip || "192.168.4.1";
+  state.flashlight = !!data.flashlightOn;
+  state.flip = !!data.camFlip;
+  state.mood = data.mood || "idle";
+  $("moodSelect").value = state.mood;
+  updateMsgState(!!data.messageActive);
+  $("flashBtn").classList.toggle("on", state.flashlight);
   startVideo();
-  const r = await api("/api/state");
-  if (!r.ok) {
-    if (r.status === 401) {
-      $("app").classList.add("hidden");
-      $("authGate").classList.remove("hidden");
-      return;
-    }
-  } else {
-    state.mood = r.data.mood;
-    state.ip = r.data.ip;
-    state.ssid = r.data.ssid || "";
-    state.flashlight = r.data.flashlightOn;
-    state.oledAnim = r.data.oledAnim;
-    state.messageActive = !!r.data.messageActive;
-    $("flashBtn").classList.toggle("on", state.flashlight);
-    $("animBtn").classList.toggle("on", state.oledAnim);
-    updateMsgState();
-    document.querySelectorAll(".mood").forEach((b) => {
-      b.classList.toggle("active", b.dataset.mood === r.data.mood);
-    });
-  }
   setInterval(pollState, 3000);
 }
 
-applyTheme(localStorage.getItem("mochi_theme") || "dark");
-
-// auto-unlock with stored token on boot
-(async () => {
-  if (!state.token) {
-    $("authGate").classList.remove("hidden");
-    return;
-  }
-  const r = await api("/api/state");
-  if (r.ok) {
-    $("app").classList.remove("hidden");
-    init();
-  } else {
-    $("authGate").classList.remove("hidden");
-  }
-})();
-
-$("authBtn").addEventListener("click", unlock);
-$("authToken").addEventListener("keydown", (e) => {
-  if (e.key === "Enter") unlock();
-});
+boot();

@@ -6,9 +6,9 @@
 #include "settings.h"
 
 // Handles station-mode connection, fallback SoftAP configuration mode and
-// mDNS advertisement. The actual configuration portal UI lives in the main
-// web server (see web_server.cpp): when in AP mode the web UI shows the
-// "connection settings" panel at 192.168.4.1.
+// mDNS advertisement. The actual configuration portal UI lives in the web
+// server: when in AP mode the web UI shows the connection settings panel at
+// 192.168.4.1.
 class WifiHelper {
 public:
     void begin();

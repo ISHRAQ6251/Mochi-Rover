@@ -4,13 +4,11 @@
 
 // DRV8833 dual-channel motor driver with LEDC PWM on all four inputs.
 //
-// Wiring (user-confirmed):
-//   Motor A (left):  IN1 = GPIO3, IN2 = GPIO1
-//   Motor B (right): IN3 = GPIO13, IN4 = GPIO12
+// Wiring:
+//   Motor A (left):  IN1 = GPIO1,  IN2 = GPIO14
+//   Motor B (right): IN3 = GPIO21, IN4 = GPIO42
 //
-// Note: GPIO1/GPIO3 are also U0TXD/U0RXD. Serial.begin() must therefore never
-// be called on UART0. All four pins are re-purposed as LEDC outputs in
-// begin() after boot.
+// All four pins are re-purposed as LEDC outputs in begin().
 
 class MotorControl {
 public:
@@ -25,10 +23,10 @@ public:
     void setLeft(int16_t speed);
     void setRight(int16_t speed);
 
-    // Brake (both inputs driven) then coast after a short delay.
+    // Coast both motors.
     void stop();
 
-    void update();   // call frequently; handles coast timer
+    void update();   // call frequently
 
     int16_t throttle() const { return _throttle; }
     int16_t steering() const { return _steering; }
@@ -38,8 +36,6 @@ private:
 
     int16_t _throttle = 0;
     int16_t _steering = 0;
-    bool    _stopping = false;
-    uint32_t _stopAt = 0;
 };
 
 extern MotorControl motors;

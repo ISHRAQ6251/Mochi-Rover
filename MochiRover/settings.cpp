@@ -18,8 +18,7 @@ void Settings::load() {
 
     data.camResolution = prefs.getInt(NVS_KEY_RES, data.camResolution);
     data.camQuality   = prefs.getInt(NVS_KEY_QUALITY, data.camQuality);
-    data.camFps       = prefs.getInt(NVS_KEY_FPS, data.camFps);
-    data.camFormat    = prefs.getInt(NVS_KEY_FORMAT, data.camFormat);
+    data.camFlip      = prefs.getBool(NVS_KEY_FLIP, data.camFlip);
     data.flashlightOn = prefs.getBool(NVS_KEY_FLASH, data.flashlightOn);
     data.oledAnim     = prefs.getBool(NVS_KEY_OLEDANIM, data.oledAnim);
 }
@@ -30,8 +29,7 @@ void Settings::save() {
     writeString(NVS_KEY_TOKEN, data.authToken);
     prefs.putInt(NVS_KEY_RES, data.camResolution);
     prefs.putInt(NVS_KEY_QUALITY, data.camQuality);
-    prefs.putInt(NVS_KEY_FPS, data.camFps);
-    prefs.putInt(NVS_KEY_FORMAT, data.camFormat);
+    prefs.putBool(NVS_KEY_FLIP, data.camFlip);
     prefs.putBool(NVS_KEY_FLASH, data.flashlightOn);
     prefs.putBool(NVS_KEY_OLEDANIM, data.oledAnim);
     prefs.end();
@@ -65,11 +63,14 @@ void Settings::setToken(const char* token) {
     save();
 }
 
-void Settings::setCamera(int resolution, int quality, int fps, int format) {
+void Settings::setCamera(int resolution, int quality) {
     data.camResolution = resolution;
     data.camQuality = quality;
-    data.camFps = fps;
-    data.camFormat = format;
+    save();
+}
+
+void Settings::setCamFlip(bool flip) {
+    data.camFlip = flip;
     save();
 }
 

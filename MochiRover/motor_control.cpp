@@ -4,11 +4,12 @@
 MotorControl motors;
 
 void MotorControl::begin() {
-    // New ESP32-core (v3.x) LEDC API binds each pin directly.
-    ledcAttach(PIN_MOTOR_L_IN1, MOTOR_PWM_FREQ, MOTOR_PWM_RES);
-    ledcAttach(PIN_MOTOR_L_IN2, MOTOR_PWM_FREQ, MOTOR_PWM_RES);
-    ledcAttach(PIN_MOTOR_R_IN3, MOTOR_PWM_FREQ, MOTOR_PWM_RES);
-    ledcAttach(PIN_MOTOR_R_IN4, MOTOR_PWM_FREQ, MOTOR_PWM_RES);
+    // New ESP32-core (v3.x) LEDC API. Channels are pinned explicitly (1..4)
+    // so we never collide with the camera's XCLK, which uses LEDC channel 0.
+    ledcAttachChannel(PIN_MOTOR_L_IN1, MOTOR_PWM_FREQ, MOTOR_PWM_RES, 1);
+    ledcAttachChannel(PIN_MOTOR_L_IN2, MOTOR_PWM_FREQ, MOTOR_PWM_RES, 2);
+    ledcAttachChannel(PIN_MOTOR_R_IN3, MOTOR_PWM_FREQ, MOTOR_PWM_RES, 3);
+    ledcAttachChannel(PIN_MOTOR_R_IN4, MOTOR_PWM_FREQ, MOTOR_PWM_RES, 4);
 
     ledcWrite(PIN_MOTOR_L_IN1, 0);
     ledcWrite(PIN_MOTOR_L_IN2, 0);
@@ -28,7 +29,6 @@ void MotorControl::drive(int16_t throttle, int16_t steering) {
 
     setLeft(left);
     setRight(right);
-    _stopping = false;
 }
 
 void MotorControl::setLeft(int16_t speed) {
@@ -54,17 +54,11 @@ void MotorControl::setPin(uint8_t inA, uint8_t inB, int16_t speed) {
 }
 
 void MotorControl::stop() {
-    // Brake briefly to settle the wheels, then let them coast free.
     setLeft(0);
     setRight(0);
     _throttle = 0;
     _steering = 0;
-    _stopping = true;
-    _stopAt = millis() + MOTOR_STOP_DELAY_MS;
 }
 
 void MotorControl::update() {
-    if (_stopping && millis() >= _stopAt) {
-        _stopping = false;
-    }
 }

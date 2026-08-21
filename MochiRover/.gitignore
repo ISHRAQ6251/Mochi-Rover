@@ -1,4 +1,5 @@
-build/
-dist/
+# arduino-cli build output
+/build/
+*.bin
 *.elf
-*.map
+*.partitions.bin

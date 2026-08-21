@@ -5,41 +5,44 @@
 // ---------------------------------------------------------------------------
 // Board / wiring configuration (user-confirmed)
 // ---------------------------------------------------------------------------
+// ESP32-S3-CAM "bare clone" (N16R8 = 16 MB flash, 8 MB OPI PSRAM) with an
+// OV5640 camera on the ribbon/FPC connector. Camera pinout is the well-known
+// Freenove / generic layout (cross-confirmed by jzsalinas/exp-esp32s3 and
+// sorn-AI/ESP32_WEB_Camera). Camera occupies GPIO 4-18 (except 14).
+
+// OV5640 parallel camera
+#define CAM_PIN_PWDN    -1
+#define CAM_PIN_RESET   -1
+#define CAM_PIN_XCLK    15
+#define CAM_PIN_SIOD    4
+#define CAM_PIN_SIOC    5
+#define CAM_PIN_D7      16   // Y9
+#define CAM_PIN_D6      17   // Y8
+#define CAM_PIN_D5      18   // Y7
+#define CAM_PIN_D4      12   // Y6
+#define CAM_PIN_D3      10   // Y5
+#define CAM_PIN_D2      8    // Y4
+#define CAM_PIN_D1      9    // Y3
+#define CAM_PIN_D0      11   // Y2
+#define CAM_PIN_VSYNC   6
+#define CAM_PIN_HREF    7
+#define CAM_PIN_PCLK    13
 
 // DRV8833 dual motor driver
-//   Motor A (left):  IN1 = GPIO3, IN2 = GPIO1
-//   Motor B (right): IN3 = GPIO13, IN4 = GPIO12
-#define PIN_MOTOR_L_IN1  3
-#define PIN_MOTOR_L_IN2  1
-#define PIN_MOTOR_R_IN3  13
-#define PIN_MOTOR_R_IN4  12
+//   Motor A (left):  IN1 = GPIO1,  IN2 = GPIO14
+//   Motor B (right): IN3 = GPIO21, IN4 = GPIO42
+#define PIN_MOTOR_L_IN1  1
+#define PIN_MOTOR_L_IN2  14
+#define PIN_MOTOR_R_IN3  21
+#define PIN_MOTOR_R_IN4  42
 
-// SH1106 OLED over I2C
-#define PIN_OLED_SDA     14
-#define PIN_OLED_SCL     15
+// SH1106 OLED over I2C (Wire1, keep clear of the camera SCCB bus on 4/5)
+#define PIN_OLED_SDA     35
+#define PIN_OLED_SCL     36
 
-// On-board flashlight LED (high = on)
-#define PIN_FLASH_LED    4
-
-// ---------------------------------------------------------------------------
-// AI Thinker ESP32-CAM camera pin mapping (SD disabled)
-// ---------------------------------------------------------------------------
-#define CAM_PIN_PWDN    32
-#define CAM_PIN_RESET   -1
-#define CAM_PIN_XCLK    0
-#define CAM_PIN_SIOD    26
-#define CAM_PIN_SIOC    27
-#define CAM_PIN_D7      35
-#define CAM_PIN_D6      34
-#define CAM_PIN_D5      39
-#define CAM_PIN_D4      36
-#define CAM_PIN_D3      21
-#define CAM_PIN_D2      19
-#define CAM_PIN_D1      18
-#define CAM_PIN_D0      5
-#define CAM_PIN_VSYNC   25
-#define CAM_PIN_HREF    23
-#define CAM_PIN_PCLK    22
+// On-board flashlight LED (high = on). On this board an LED is wired to GPIO2;
+// if your board lacks it, wire an external LED to GPIO2 through a resistor.
+#define PIN_FLASH_LED    2
 
 // ---------------------------------------------------------------------------
 // Display
@@ -77,13 +80,14 @@
 #define NVS_KEY_RES       "cam_res"
 #define NVS_KEY_QUALITY   "cam_quality"
 #define NVS_KEY_FPS       "cam_fps"
-#define NVS_KEY_FORMAT    "cam_format"
+#define NVS_KEY_FLIP      "cam_flip"
 #define NVS_KEY_FLASH     "flash_on"
 #define NVS_KEY_OLEDANIM  "oled_anim"
 
 // ---------------------------------------------------------------------------
 // Behavioural timings
 // ---------------------------------------------------------------------------
-#define SLEEP_TIMEOUT_MS  600000UL    // 10 min inactivity before eye sleep mode
+#define SLEEP_TIMEOUT_MS  60000UL     // 60 s inactivity before eye sleep mode
 #define STREAM_TIMEOUT_MS 10000UL     // max time to wait for a camera frame
 #define MOTOR_STOP_DELAY_MS 300UL     // coast time after a stop command
+#define MOOD_OVERRIDE_MS  4000UL      // mood override lasts ~4 s, then idle

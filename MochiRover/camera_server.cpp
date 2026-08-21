@@ -78,8 +78,12 @@ static size_t streamFiller(uint8_t* buf, size_t maxLen, size_t index) {
 bool CameraServer::begin() {
     camera_config_t cfg;
     memset(&cfg, 0, sizeof(cfg));
-    cfg.ledc_channel = LEDC_CHANNEL_0;
-    cfg.ledc_timer = LEDC_TIMER_0;
+    // The esp32-camera driver configures its XCLK clock through the native
+    // IDF LEDC driver (invisible to the Arduino LEDC wrapper). Reserve a
+    // dedicated channel/timer so it can never collide with the motor PWM,
+    // which the Arduino API allocates starting at timer 0 / channels 1..4.
+    cfg.ledc_channel = LEDC_CHANNEL_5;
+    cfg.ledc_timer = LEDC_TIMER_2;
     cfg.pin_d0 = CAM_PIN_D0;
     cfg.pin_d1 = CAM_PIN_D1;
     cfg.pin_d2 = CAM_PIN_D2;
@@ -100,8 +104,9 @@ bool CameraServer::begin() {
     cfg.pixel_format = PIXFORMAT_JPEG;
     cfg.frame_size = (framesize_t)settings.data.camResolution;
     cfg.jpeg_quality = settings.data.camQuality;
-    cfg.fb_count = 1;
-    cfg.grab_mode = CAMERA_GRAB_WHEN_EMPTY;
+    cfg.fb_count = 2;
+    cfg.fb_location = CAMERA_FB_IN_PSRAM;
+    cfg.grab_mode = CAMERA_GRAB_LATEST;
 
     esp_err_t err = esp_camera_init(&cfg);
     if (err != ESP_OK) {
@@ -117,8 +122,9 @@ void CameraServer::applySettings() {
     if (!s) return;
     s->set_framesize(s, (framesize_t)settings.data.camResolution);
     s->set_quality(s, settings.data.camQuality);
-    s->set_hmirror(s, 0);
-    s->set_vflip(s, 0);
+    bool flip = settings.data.camFlip;
+    s->set_hmirror(s, flip ? 1 : 0);
+    s->set_vflip(s, flip ? 1 : 0);
 }
 
 void CameraServer::setupHandlers(AsyncWebServer& server) {
@@ -130,9 +136,27 @@ void CameraServer::setupHandlers(AsyncWebServer& server) {
         request->send(resp);
     });
 
-    // Single JPEG snapshot
+    // Single JPEG snapshot (briefly bumps to UXGA for a higher-res photo)
     server.on("/capture", HTTP_GET, [](AsyncWebServerRequest* request) {
-        camera_fb_t* fb = esp_camera_fb_get();
+        sensor_t* s = esp_camera_sensor_get();
+        if (!s) {
+            request->send(503, "text/plain", "camera unavailable");
+            return;
+        }
+        framesize_t prevSize = s->status.framesize;
+        int prevQuality = s->status.quality;
+        s->set_framesize(s, FRAMESIZE_UXGA);
+        s->set_quality(s, 10);
+
+        camera_fb_t* fb = nullptr;
+        uint32_t start = millis();
+        while (!fb && millis() - start < STREAM_TIMEOUT_MS) {
+            fb = esp_camera_fb_get();
+        }
+
+        s->set_quality(s, prevQuality);
+        s->set_framesize(s, prevSize);
+
         if (!fb) {
             request->send(503, "text/plain", "camera busy");
             return;

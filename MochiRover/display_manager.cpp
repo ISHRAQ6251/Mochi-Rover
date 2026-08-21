@@ -8,7 +8,7 @@ void DisplayManager::begin() {
     _bootStart = millis();
     _lastActivity = millis();
 
-    Wire.begin(PIN_OLED_SDA, PIN_OLED_SCL);
+    Wire1.begin(PIN_OLED_SDA, PIN_OLED_SCL);
     _display.begin(OLED_I2C_ADDR, false);
     _display.clearDisplay();
     _display.display();
@@ -19,7 +19,6 @@ void DisplayManager::begin() {
 
 void DisplayManager::setMood(MochiMood mood) {
     _mood = mood;
-    _moodActive = true;
     eyes.setMood(mood);
     notifyActivity();
 }

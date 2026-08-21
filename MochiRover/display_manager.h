@@ -25,7 +25,6 @@ public:
     void notifyActivity();       // any user input resets the sleep timer
 
     bool sleeping() const { return _sleeping; }
-    bool moodActive() const { return _moodActive; }
 
 private:
     enum class Screen { BOOT, CONNECTION, TEXT, FACE };
@@ -37,7 +36,7 @@ private:
     void renderFace(uint32_t now);
     void push();
 
-    Adafruit_SH1106G _display{OLED_WIDTH, OLED_HEIGHT, &Wire, -1};
+    Adafruit_SH1106G _display{OLED_WIDTH, OLED_HEIGHT, &Wire1, -1};
     GFXcanvas1 _canvas{OLED_WIDTH, OLED_HEIGHT};
 
     Screen _screen = Screen::BOOT;
@@ -51,7 +50,6 @@ private:
     char _message[64] = {0};
 
     MochiMood _mood = MochiMood::IDLE;
-    bool _moodActive = false;
     bool _sleeping = false;
 };
 

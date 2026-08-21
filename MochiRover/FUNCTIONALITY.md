@@ -1,192 +1,125 @@
-# MochiRover — Full Functionality Report
+# MochiRover - Functionality Reference
 
-ESP32-CAM smart rover with MJPEG live video, an authenticated responsive web
-cockpit, DRV8833 dual-motor drive, and a Dasai-Mochi-style animated OLED face.
+## Overview
 
-**Status: COMPLETE and FLASH-READY.** The firmware compiles cleanly
-(`arduino-cli compile --fqbn esp32:esp32:esp32cam` — no errors, no warnings)
-and ready-to-flash binaries are in `dist/`.
+MochiRover is a Wi-Fi controlled rover built on an ESP32-S3-CAM (OV5640, N16R8).
+A phone browser provides an MJPEG live view plus a full remote-control cockpit;
+the on-board SH1106 OLED runs an animated "Mochi" face that reacts to state,
+moods, driving and messages.
 
----
+## Feature list
 
-## 1. Architecture
+- Live MJPEG video stream (`/stream`), SVGA 800x600 default, quality configurable
+  via NVS; XCLK 20 MHz, PSRAM frame buffers, `CAMERA_GRAB_LATEST` for low latency.
+- Browser-side captures:
+  - Photo: `/capture` temporarily bumps to UXGA (1600x1200) JPEG, downloaded as
+    `mochi_<timestamp>.jpg`.
+  - Clip: recorded client-side with MediaRecorder (VP9/VP8 WebM) by drawing the
+    stream to a hidden canvas; downloaded as `mochi_clip.webm`. No SD card used.
+- Differential drive: ◀ ▶ ▲ ▼ hold-to-move buttons, speed slider (0-255), stop
+  on release, arcade-style throttle + steering mixing on the DRV8833.
+- Flashlight toggle driving the on-board LED on GPIO2.
+- Mood system: six moods (Happy, Angry, Curious, Dead, Sleepy, Wink) shown both
+  in a quick popup (👀) and a dropdown. A mood override lasts ~4 s (Wink 1.5 s)
+  then returns to the idle face.
+- Message-to-OLED: persistent rounded text box with the animated eyes kept in a
+  compact mode above it; cleared with the ✕ button in the UI.
+- Animated OLED face: blinking, saccades and an autonomous idle script
+  (look-around, surprise, suspicious squint, doze-off, occasional wink), a
+  wide-eyed "whoa" kick on drive start, driving-reaction eyes, and a Zzz sleep
+  state after 60 s without input.
+- Network: STA-first; falls back to a SoftAP configuration portal
+  (`MochiRover` / `mochi1234`) with captive DNS; mDNS hostname `mochirover`.
+- Auth: token-gated control API (default token `mochi`, changeable in Settings).
+  Streaming and the provisioning endpoint in AP mode are intentionally open.
 
-| Module | File | Responsibility |
-| ------ | ---- | -------------- |
-| Entry point | `MochiRover.ino` | `setup()`/`loop()` orchestration |
-| Config | `config.h` | pins, AP credentials, timing constants |
-| Settings | `settings.h/.cpp` | NVS-backed `RoverSettings` struct |
-| Motors | `motor_control.h/.cpp` | DRV8833 differential drive (LEDC PWM) |
-| Eyes | `mochi_eyes.h/.cpp` | procedural Dasai-Mochi face engine |
-| Display | `display_manager.h/.cpp` | screen scheduler + SH1106 render/push |
-| Wi-Fi | `wifi_helper.h/.cpp` | STA / AP / captive-DNS / mDNS |
-| Camera | `camera_server.h/.cpp` | OV2640 init, MJPEG stream + snapshot |
-| Web | `web_server.h/.cpp` | ESPAsyncWebServer routes + REST API |
-| UI | `web_ui/*` + `web_assets.h` | cockpit HTML/CSS/JS (PROGMEM embedded) |
-| Tooling | `tools/embed_web.py` | regenerates `web_assets.h` from `web_ui/` |
+## Web UI
 
-Boot-time priority (in `setup()`): logging level → NVS settings → motors →
-display/OLED → Wi-Fi → camera → web server. Everything is non-blocking;
-`loop()` simply calls `wifiHelper.update()`, `displayMgr.update()`,
-`motors.update()` every 10 ms while async web/camera work runs in the
-background.
+Smartphone-first dark UI with a light theme option (saved in the browser):
 
-## 2. System State Machine
+- Header: robot wordmark "🤖 Mochi", a status pill (red/green CTRL dot for
+  connection, CAM dot for live feed), and 🔦 / 👀 / ⚙️ buttons.
+- Rounded video panel with overlay buttons: 🔄 flip/refresh (mirror+vflip the
+  image and reload the stream), 📷 capture photo, ● record clip (turns ⏹ while
+  recording, REC badge shown).
+- One row of four square control buttons: ◀ ▶ (STEERING) and ▲ ▼ (THROTTLE).
+- Bottom card: "Message to OLED..." input with inline Send (+ ✕ to clear), a
+  Mood dropdown, and a Speed slider with a live value.
+- Mood popup: a white rounded card under the header with the six moods.
+- Settings modal "Rover Connection & Settings": Rover IP / Domain field
+  (default `192.168.4.1`), theme selector, and an optional new access token.
+  It intentionally has no Wi-Fi SSID/password fields; first-time provisioning
+  happens on the separate setup page shown while the rover is in AP mode.
 
-```
-                 ┌────────────────────────────┐
-                 │            BOOT            │  MochiRover splash + progress
-                 └──────────────┬─────────────┘
-                                │ 1.5 s
-                                ▼
-                 ┌────────────────────────────┐
-                 │    NETWORK ACQUIRE (STA)   │─── saved SSID present ──► STA connect
-                 └──────────────┬─────────────┘
-                                │ no network saved / connect fails
-                                ▼
-                 ┌────────────────────────────┐
-                 │   CONFIG PORTAL (AP mode)  │  MochiRover/mochi1234 @192.168.4.1
-                 └──────────────┬─────────────┘  captive DNS → cockpit settings → NVS
-                                │ STA connects
-                                ▼
-                 ┌────────────────────────────┐
-                 │  RUN: CAMERA + WEB SERVER  │  MJPEG stream, REST API, mDNS
-                 └──────────────┬─────────────┘
-                                │ 600 s inactivity      │ new drive/mood/message
-                                ▼                        ▼
-                 ┌────────────────────────────┐  ┌────────────────────────────┐
-                 │   SLEEP (Zzz) — wake on    │  │   ACTIVITY — resets sleep   │
-                 │   any user input           │  └─────────────┬──────────────┘
-                 └────────────────────────────┘                │
-                                                                ▼
-                                               ┌──────────────────────────────┐
-                                               │   FACE / TEXT / DRIVING / ... │
-                                               └──────────────────────────────┘
-```
+## API
 
-### 2a. Display screen scheduler (`DisplayManager::pickScreen`)
+All control endpoints (except `/api/info`, `/api/auth`, `/api/wifi` in AP mode,
+`/stream` and `/capture`) require the token either as an `X-Auth-Token` header
+or a `?token=` query parameter.
 
-Screen selection is **strict priority, highest first**, evaluated every frame:
+| Endpoint | Method | Auth | Body params | Description |
+| -------- | ------ | ---- | ----------- | ----------- |
+| `/` `/style.css` `/app.js` | GET | - | - | Static UI |
+| `/stream` | GET | - | - | MJPEG multipart stream |
+| `/capture` | GET | - | - | High-res JPEG snapshot |
+| `/api/info` | GET | - | - | `apMode`, `connected`, `haveSaved`, `ip`, `hostname` |
+| `/api/auth` | POST | - | `token` | Verify token |
+| `/api/wifi` | POST | AP only | `ssid`, `pass` | Provision Wi-Fi (open only in AP mode) |
+| `/api/state` | GET | yes | - | Full state JSON (below) |
+| `/api/drive` | POST | yes | `throttle`, `steering` | Drive, -255..255 |
+| `/api/stop` | POST | yes | - | Coast both motors |
+| `/api/mood` | POST | yes | `mood` | `happy` `angry` `curious` `dead` `sleepy` `wink` `idle` |
+| `/api/message` | POST | yes | `text` | Show message; empty `text` clears |
+| `/api/flash` | POST | yes | `on` | 0/1 flashlight |
+| `/api/settings` | POST | yes | `oledAnim` | 0/1 eyes animation |
+| `/api/camera` | POST | yes | `flip` | 0/1 mirror+vflip image |
+| `/api/token` | POST | yes | `token` | Change access token (min 4 chars) |
 
-1. **BOOT** — splash + animated progress bar for 1.5 s after power-on.
-2. **CONNECTION** — shown whenever the network is not connected; renders AP
-   setup hint (`AP: 192.168.4.1`) in portal mode, "Connecting..." otherwise.
-3. **TEXT** — shown while a message is active. The message **persists until the
-   cockpit's dedicated Clear button is pressed** (it no longer auto-expires).
-   While active, the eyes shrink and rise to the top and a rounded-corner text
-   box holds the wrapped message below.
-4. **FACE** — the normal face. Within it, the sub-priorities are:
-   **sleep (Zzz) > driving reaction > explicit mood > autonomous idle**.
-   - *Sleep*: after `SLEEP_TIMEOUT_MS` (600 000 ms) of no user input, eyes close
-     and animated "Zzz" float up. Any activity wakes it instantly.
-   - *Driving*: throttle/steering live-reacts (excitement kick on start, lids
-     narrow with speed, pupils track steering).
-   - *Mood*: explicit mood persists until another mood or idle is chosen.
-   - *Idle*: the autonomous Dasai-Mochi idle script runs (see below).
+`/api/state` returns: `throttle`, `steering`, `mood`, `sleeping`,
+`flashlightOn`, `oledAnim`, `camResolution`, `camQuality`, `camFlip`,
+`connected`, `apMode`, `ip`, `messageActive`, `message`.
 
-Note: because TEXT outranks sleep, an active message never disappears on its
-own; pressing Clear restores the full-size face and resets the sleep timer.
+## OLED state machine
 
-### 2b. Wi-Fi state machine (`WifiHelper`)
-
-- **STA-first**: tries the NVS-saved SSID non-blocking; re-checks every 30 s.
-- **AP fallback**: no saved network (or STA fails) → soft-AP `MochiRover`/
-  `mochi1234` on `192.168.4.1` with captive DNS; the cockpit's settings panel
-  writes target credentials to NVS and triggers a reconnect.
-- **mDNS**: advertises `mochirover.local` and `_http` service.
-- **Apply path**: `/api/wifi` saves and reconnects; `/api/token` rotates the
-  auth token (also persisted in NVS).
-
-## 3. The Dasai Mochi Face
-
-The face is **fully procedural** (Adafruit_GFX primitives), inspired by the
-open-source Dasai Mochi ecosystem (`upiir/esp32s3_oled_dasai_mochi`,
-`NeoDoggy/BetterMochi`). The upstream projects ship monolithic pre-rendered
-bitmaps, so authentic *behaviour* is recreated here as an animation engine.
-
-**Autonomous idle script** (`MochiEyes::updateIdleScript`) — mirrors the feel of
-the upstream Rive 90-frame idle loop: while sitting idle the character
-periodically **looks around** (fast, wide saccades), **blinks**, and
-spontaneously shifts through small expressions, each eased to/from with smooth
-transitions:
-
-| Idle pose | Behaviour |
-| --------- | --------- |
-| NEUTRAL   | gentle neutral look, occasional soft smile |
-| LOOK      | active gaze wander (faster, wider saccades) |
-| HAPPY     | content squint + smile |
-| CURIOUS   | tilted peek + small mouth |
-| SURPRISE  | wide eyes + open mouth |
-| SUSPICIOUS| narrowed lids + slight frown |
-| DOZE      | brief heavy-lid doze-off dip |
-| WINK      | one-eye wink + smile |
-
-Randomized on 0.9–2.7 s picks; blinks every 1.8–4.3 s; independent of the
-explicit 12-mood API. All expressions are **driving-reactive**: pressing the
-throttle instantly pops an "excitement kick" (wide eyes) that eases down as
-speed builds, lids narrow with speed, and pupils steer into the turn.
-
-**Text mode**: `setCompact(true)` drives a smooth 280 ms shrink-and-rise of the
-eyes (interpolated geometry); the mouth/brows fold away to leave room for the
-persistent rounded text box. The eyes stay fully animated in compact mode.
-
-## 4. Feature Checklist
-
-- [x] MJPEG live video (`/stream`, `multipart/x-mixed-replace`) + snapshot
-      (`/capture`) — open endpoints, single shared stream client.
-- [x] Authenticated REST API (`X-Auth-Token` header or `token` query param),
-      default token `mochi`, rotatable via `/api/token`.
-- [x] Arcade differential driving: two pointer pads → throttle + steering,
-      mixed per-motor, STOP button, motor safety timeout.
-- [x] Speed slider 0–255, integer snapping + `navigator.vibrate` haptics.
-- [x] 12 moods (happy, angry, sad, crying, dead, confused, sleepy, wink, blink,
-      curious, love, idle).
-- [x] Persistent message-to-OLED with rounded text box + **Clear** button
-      (`/api/message`, empty `text` clears).
-- [x] Flashlight (GPIO4) and OLED-animation toggles.
-- [x] Settings modal: rover IP, Wi-Fi SSID/password, theme, camera
-      resolution/quality/fps/format, animation toggle.
-- [x] Auth gate UI + token auto-unlock via localStorage.
-- [x] Dark/light theme; responsive layout (`max-width: 640px`).
-- [x] Sleep / wake with animated Zzz.
-- [x] Config portal (AP + captive DNS) when no Wi-Fi is saved.
-- [x] State polling (`/api/state`, 3 s) drives chips, mood highlight and the
-      message-active indicator.
-
-## 5. Task Priorities (runtime)
-
-1. **Async web/camera** (ESP-IDF freeRTOS tasks under ESPAsyncWebServer): stream
-   frames, serve API/UI — highest throughput, never blocks `loop()`.
-2. **`loop()`** (10 ms): Wi-Fi reconnect timer → display scheduler
-   (screen pick + eyes update + OLED push) → motor safety timeout.
-3. **Display scheduler** decides *which* face work runs this frame; eyes are
-   updated only when a face/text screen is active.
-4. **Motor safety** (`motors.update()`): brakes after `MOTOR_STOP_DELAY_MS`
-   with no new drive command — belt-and-suspenders on top of the web STOP.
-
-Rationale: streaming is time-critical and runs in its own task; the OLED face
-is a 10 Hz/100 Hz best-effort render; motor safety is cheap and runs every loop
-so a lost connection can never leave the rover running.
-
-## 6. Flash Readiness
-
-Verified with Arduino CLI:
+Screen priority (highest first):
 
 ```
-arduino-cli compile --fqbn esp32:esp32:esp32cam /workspace/MochiRover/MochiRover.ino
-  Sketch uses 1133064 bytes (36%) of program storage space. Maximum is 3145728 bytes.
-  Global variables use 62428 bytes (19%) of dynamic memory. Maximum is 327680 bytes.
+BOOT (1.5 s) -> CONNECTION (until Wi-Fi is up) -> TEXT (persistent message)
+            -> sleep (Zzz) -> mood / driving / idle face
 ```
 
-- **No errors, no warnings.** Fits easily in the 3 MB "Huge APP" partition.
-- Flashable binaries refreshed in `dist/`:
-  - `MochiRover.merged.bin` (4 194 304 B) — single-file flash
-  - `MochiRover.bin` (1 133 216 B), `MochiRover.bootloader.bin`,
-    `MochiRover.partitions.bin` — component flash
-- Libraries pinned: ESP32 core `esp32:esp32@3.3.11`, Adafruit GFX 1.12.6,
-  Adafruit SH110X 2.1.14, Adafruit BusIO 1.17.4, ESP Async WebServer 3.12.0,
-  Async TCP 3.5.0.
-- Wiring per the confirmed diagram: DRV8833 GPIO3/1/13/12, OLED SDA/SCL
-  GPIO14/15, flash GPIO4, OV2640 standard pinout, SD disabled.
+- **BOOT**: "Mochi Rover / Booting..." with an animated progress bar.
+- **CONNECTION**: shows `AP: 192.168.4.1` in setup mode, or "Connecting...".
+- **TEXT**: compact eyes on top + a rounded text box with the wrapped message
+  (up to 3 lines, ellipsized). The message persists until cleared; the ✕
+  restores the full-size face and resets the sleep timer.
+- **FACE**: full animated eyes. After 60 s without drive/mood/message input the
+  eyes close and Zzz float up; any input wakes them.
 
-**The project is complete and ready to flash to the ESP32-CAM.**
+## Face engine
+
+Procedural, drawn with Adafruit_GFX primitives (no bitmaps). Inspired by the
+open-source "Dasai Mochi" OLED projects. Eases every parameter (lid, pupil,
+brow) toward targets. Blinks every ~1.8-4.3 s; the idle script randomly cycles
+look-around, happy squint, curious peek, surprise, suspicious, doze and wink.
+Moods override the idle script; driving overrides moods with a wide "whoa"
+start and gaze in the steering direction.
+
+## Camera notes
+
+- Default stream: SVGA (800x600), JPEG quality 12, 2 PSRAM frame buffers,
+  `CAMERA_GRAB_LATEST`, XCLK 20 MHz.
+- The LEDC channels are deliberately split: motor PWM uses the Arduino LEDC
+  wrapper (channels 1-4, timer 0) while the camera XCLK uses the native IDF LEDC
+  driver on channel 5 / timer 2, so they can never collide.
+- If the stream shows purple flicker or drops on a long ribbon, lower
+  `cfg.xclk_freq_hz` from 20 MHz to 10 MHz in `camera_server.cpp`.
+
+## Known limitations
+
+- The MJPEG stream uses a single shared packetizer, so a second simultaneous
+  viewer can cause glitches on the first; fine for a single controller phone.
+- `/capture` temporarily switches the sensor to UXGA, which briefly interrupts
+  the live stream for other clients.
+- If the saved Wi-Fi network is unreachable, power-cycle the rover to re-enter
+  the configuration AP mode.

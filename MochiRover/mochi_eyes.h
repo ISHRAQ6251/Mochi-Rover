@@ -5,23 +5,17 @@
 
 // Procedural "Dasai Mochi"-style animated eyes for the SH1106 OLED.
 //
-// Inspired by the open source Dasai Mochi / Datasai ESP32 OLED projects
-// (upiir/esp32s3_oled_dasai_mochi). Those projects are monolithic bitmap
-// based sketches without a reusable library API, so this engine draws the
-// eyes procedurally with Adafruit_GFX primitives. See README credits.
+// The eyes are drawn with Adafruit_GFX primitives (no bitmaps) and follow a
+// small state machine: idle script (blinks, saccades, micro-expressions),
+// explicit mood overrides, driving reactions and sleep.
 
 enum class MochiMood : uint8_t {
     HAPPY = 0,
     ANGRY,
-    SAD,
-    CRYING,
+    CURIOUS,
     DEAD,
-    CONFUSED,
     SLEEPY,
     WINK,
-    BLINK,
-    CURIOUS,
-    LOVE,
     IDLE
 };
 
@@ -33,10 +27,10 @@ public:
     MochiMood mood() const { return _mood; }
     const char* moodName() const;
 
-    // Driving reactions (called by DisplayManager)
+    // Driving reactions (called by WebServerMgr)
     void setDriving(int16_t throttle, int16_t steering);
     void setSleeping(bool sleeping);
-    // When disabled: no auto-blink/saccades/idle script, poses still ease to targets.
+    // When disabled: no auto-blink/saccades/idle script.
     void setAnimEnabled(bool enabled);
     // Compact mode: eyes shrink and rise to the top of the display to leave
     // room for the persistent text box. Smoothly animated in update().
@@ -108,7 +102,6 @@ private:
     bool     _wasDriving = false;
     uint8_t  _drivingKick = 0;   // excitement burst on drive start
 
-    // authentic Dasai Mochi idle behavior script
     IdlePose _idlePose = IdlePose::NEUTRAL;
     uint8_t  _idleMouth = MOUTH_NEUTRAL;
     uint32_t _idlePoseUntil = 0;

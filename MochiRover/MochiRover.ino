@@ -1,12 +1,9 @@
-// MochiRover - ESP32-CAM smart rover with Dasai Mochi-style OLED eyes
+// MochiRover - ESP32-S3-CAM rover with Dasai Mochi-style OLED eyes
 //
-// Board: AI Thinker ESP32-CAM (SD disabled, PSRAM enabled)
-// Motors: DRV8833 (IN1=GPIO3, IN2=GPIO1, IN3=GPIO13, IN4=GPIO12)
-// OLED:   SH1106 128x64 over I2C (SDA=GPIO14, SCL=GPIO15)
-// Camera: OV2640, standard AI Thinker pins
-//
-// NOTE: GPIO1/GPIO3 are U0TXD/U0RXD. They are re-purposed as LEDC PWM
-// outputs here, so UART0 must never be used for Serial debug output.
+// Board: ESP32-S3-CAM "bare clone" N16R8 (16 MB flash, 8 MB PSRAM) with OV5640
+// Motors: DRV8833 (IN1=GPIO1, IN2=GPIO14, IN3=GPIO21, IN4=GPIO42)
+// OLED:   SH1106 128x64 over I2C Wire1 (SDA=GPIO35, SCL=GPIO36)
+// Camera: OV5640, Freenove/generic clone pinout (GPIO 4-18, minus 14)
 //
 // See README.md for wiring, build and configuration instructions.
 
@@ -20,18 +17,18 @@
 #include "web_server.h"
 
 void setup() {
-    // Reduce noisy boot logging to UART0 (which is wired to the motors).
+    // Reduce noisy boot logging on the USB serial console.
     esp_log_level_set("*", ESP_LOG_ERROR);
 
     settings.begin();        // NVS settings (wifi, token, camera, flash)
-    motors.begin();          // LEDC PWM on GPIO1/3/12/13 (takes over UART0)
-    displayMgr.begin();      // SH1106 OLED + boot screen
+    motors.begin();          // LEDC PWM on GPIO1/14/21/42
+    displayMgr.begin();      // SH1106 OLED (Wire1) + boot screen
 
     wifiHelper.begin();      // connect to saved network or start config AP
     displayMgr.setConnected(wifiHelper.isConnected(), wifiHelper.isApMode(),
                             wifiHelper.ip().c_str());
 
-    cameraServer.begin();    // OV2640; harmless if it fails
+    cameraServer.begin();    // OV5640; harmless if it fails
 
     webServerMgr.begin();    // REST API + web UI + MJPEG stream
 
