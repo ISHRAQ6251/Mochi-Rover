@@ -1,5 +1,8 @@
 # MochiRover
 
+> **New to the project? Start with the [User Manual](USER_MANUAL.md)** - it
+> covers the parts list, wiring, code upload and how to drive the rover.
+
 Wi-Fi controlled RC rover for a university microcontroller lab project.
 
 An ESP32-S3-CAM module streams live video over Wi-Fi to a phone browser while a
