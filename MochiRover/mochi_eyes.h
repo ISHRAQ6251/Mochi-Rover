@@ -98,7 +98,6 @@ private:
     int16_t _targetSaccadeX = 0;
     int16_t _targetSaccadeY = 0;
 
-    uint32_t _drivingSince = 0;
     bool     _wasDriving = false;
     uint8_t  _drivingKick = 0;   // excitement burst on drive start
 

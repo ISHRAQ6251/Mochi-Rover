@@ -74,12 +74,32 @@ arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi MochiRove
 You should see:
 
 ```
-Sketch uses 1105398 bytes (84%) of program storage space.
+Sketch uses 1106066 bytes (84%) of program storage space.
+Global variables use 60804 bytes (18%) of dynamic memory.
 ```
 
-If you use the Arduino IDE instead: install the esp32 boards package, open
-`MochiRover.ino`, install the libraries from the Library Manager, and pick the
-board **"ESP32S3 Dev Module"** with flash size **16 MB** and PSRAM **OPI**.
+### 2.5 Alternative: build with the Arduino IDE
+
+If you prefer the Arduino IDE over the command line:
+
+1. Install the **Arduino IDE 2.x**.
+2. In **File > Preferences**, set the "Additional boards manager URLs" to
+   `https://espressif.github.io/arduino-esp32/package_esp32_index.json` (add it
+   if the field is empty).
+3. In **Boards Manager** (Tools > Board > Boards Manager), search for
+   **esp32** by Espressif and install it.
+4. In **Library Manager**, install: **ESPAsyncWebServer** and **AsyncTCP**
+   (pick the versions that support the ESP32 core 3.x - the actively maintained
+   forks), plus **Adafruit GFX Library**, **Adafruit SH110X**, **Adafruit
+   BusIO**.
+5. Open `MochiRover/MochiRover.ino`. It auto-loads the other files in the
+   folder.
+6. **Tools > Board > esp32 > ESP32S3 Dev Module**, then set:
+   - **Flash Size**: `16MB (128Mb)`
+   - **PSRAM**: `OPI PSRAM`
+   - **USB CDC On Boot**: `Enabled` (optional; lets you see serial logs)
+7. **Sketch > Export Compiled Binary**, or select your port and click
+   **Upload** (see section 4 for boot mode).
 
 ---
 
@@ -168,6 +188,48 @@ Replace `/dev/ttyACM0` with the port from the previous step.
 You should see the progress bar run and finish with "Hard resetting...". The
 rover then boots. **First boot after flashing is slow** (Wi-Fi tries to connect,
 then falls back to the setup network) - give it ~30 seconds.
+
+**If upload hangs at "Connecting...":** the board is not in download mode (BOOT
+was not held). Try again, or check the cable. Some boards with USB-C sockets
+need the BOOT sequence *after* plugging in power.
+
+### 4.3 Verify the firmware is running
+
+After upload, open a serial monitor to see the boot log:
+
+```bash
+# arduino-cli
+arduino-cli monitor -p /dev/ttyACM0 --config baudrate=115200
+```
+
+You should see the rover print its camera sensor PID (e.g. `OV5640`) and which
+network mode it entered. If you instead see `ov2640` or a pin mismatch error,
+your board's camera is wired differently - check the `CAM_*` pins in
+`config.h`.
+
+### 4.4 Alternative: upload with the Arduino IDE
+
+With the board set up as in section 2.5 and in download mode, select the port
+under **Tools > Port**, then click the **Upload** button (right arrow). Watch
+the console at the bottom of the IDE for the progress and result.
+
+### 4.5 Alternative: upload with esptool.py
+
+`esptool.py` is included with the ESP32 core. Compile first, then flash the
+built binary with a single command:
+
+```bash
+# find the built binary
+ls MochiRover/build/*/MochiRover.ino.bin
+
+# flash (merge puts the app at the right 0x10000 offset with the correct flash size)
+python3 -m esptool --chip esp32s3 --port /dev/ttyACM0 \
+  --baud 921600 write_flash 0x0 MochiRover/build/*/MochiRover.ino.merged.bin
+```
+
+Using the `.merged.bin` (if the core produces one) sets the correct bootloader,
+partition table and app offsets automatically. Otherwise use `esptool merge_bin`
+or let the IDE/arduino-cli handle offsets.
 
 ---
 
@@ -273,3 +335,6 @@ password), power-cycle it. After ~10 seconds of failed connection it opens the
 | Lost the access token | Reflash the firmware to restore the default token `mochi` |
 | Flickering / purple video | Lower camera XCLK from 20 MHz to 10 MHz in `camera_server.cpp` |
 | Face shows "AP:" IP | The rover is in setup mode - provision Wi-Fi from `http://192.168.4.1` |
+| Video freezes briefly, CAM dot red, then recovers | The stream drops and auto-reconnects after ~2.5 s - normal if the camera is busy capturing a photo; avoid tapping 📷 while driving |
+| Live view frozen / static frame on iPhone Safari | Older iOS Safari renders only the first MJPEG frame; use Chrome on Android or install Chrome on the iPhone |
+| All buttons do nothing after logging in | The POST requests were not decoded by the server - make sure you flashed the current `web_assets.h` / `app.js` build (the UI must send `Content-Type: application/x-www-form-urlencoded`)

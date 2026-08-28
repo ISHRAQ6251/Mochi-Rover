@@ -5,7 +5,7 @@
 // OLED:   SH1106 128x64 over I2C Wire1 (SDA=GPIO35, SCL=GPIO36)
 // Camera: OV5640, Freenove/generic clone pinout (GPIO 4-18, minus 14)
 //
-// See README.md for wiring, build and configuration instructions.
+// See ../USER_MANUAL.md for wiring, build and configuration instructions.
 
 #include "config.h"
 #include "settings.h"

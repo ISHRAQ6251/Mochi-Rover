@@ -17,7 +17,12 @@ const authHeaders = () => ({ "X-Auth-Token": state.token });
 
 async function api(path, body) {
   const opts = { method: body ? "POST" : "GET", headers: authHeaders() };
-  if (body) opts.body = new URLSearchParams(body).toString();
+  if (body) {
+    // ESPAsyncWebServer only parses POST params for urlencoded bodies; the
+    // browser default (text/plain) would not be decoded.
+    opts.headers["Content-Type"] = "application/x-www-form-urlencoded";
+    opts.body = new URLSearchParams(body).toString();
+  }
   try {
     const res = await fetch(path, opts);
     const text = await res.text();
@@ -65,13 +70,21 @@ $("setupSave").addEventListener("click", async () => {
   const t0 = Date.now();
   const poll = setInterval(async () => {
     const info = await api("/api/info");
+    if (!info.ok) {
+      // The rover switched to station mode and its setup AP disappeared, so
+      // this phone can no longer reach it. Guide the user to the next step.
+      clearInterval(poll);
+      $("setupMsg").textContent =
+        'Wi-Fi saved! Join "' + ssid + '" on this phone, then open http://mochirover.local (token: mochi)';
+      return;
+    }
     if (info.ok && info.data.connected && !info.data.apMode) {
       clearInterval(poll);
       $("setupMsg").textContent = "Connected! Loading cockpit...";
       setTimeout(() => location.reload(), 800);
     } else if (Date.now() - t0 > 30000) {
       clearInterval(poll);
-      $("setupMsg").textContent = "Could not reach the network. Check credentials and try again.";
+      $("setupMsg").textContent = "Timed out. Check the credentials and try again.";
     }
   }, 1500);
 });

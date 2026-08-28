@@ -100,11 +100,33 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
       power note about separate motor supply).
 - [x] ESPAsyncWebServer 3.1.0 patched for mbedTLS (non-`_ret` MD5 calls);
       note recorded in README for reproducibility.
+- [x] **Review pass completed** (found + fixed):
+  - Critical: UI POSTs sent no `Content-Type`, so ESPAsyncWebServer 3.x parsed
+    `text/plain` bodies and failed its `key=value` detection for single-pair
+    bodies -> auth/drive/mood/message/flash/provisioning would all have failed.
+    Fixed in `web_ui/app.js` by sending
+    `Content-Type: application/x-www-form-urlencoded`.
+  - `/capture` no longer copies the full UXGA JPEG into an internal-heap String
+    (risk of OOM for large frames); it now streams from the PSRAM frame buffer
+    via a chunked filler that returns the buffer when done.
+  - Stream packetizer: fixed an off-by-n offset when a frame ends mid-fill and
+    the next frame is appended in the same chunk (served bytes were misaligned
+    with the absolute stream offset).
+  - Provisioning UX: the old flow polled `/api/info` after the AP went away and
+    reported "could not reach the network". The UI now detects the AP drop and
+    tells the user to join their Wi-Fi and open `mochirover.local`.
+  - Removed unused `_drivingSince` / `_frameLen` / `_frameStart` members; fixed
+    stale LEDC channel comment in `motor_control.cpp`.
+- [x] Docs restructured: README moved to repo root; comprehensive USER_MANUAL.md
+      moved to repo root (parts, wiring, upload via arduino-cli/IDE/esptool,
+      usage, troubleshooting); `MochiRover/README.md` removed.
+- [x] Verified: compiles clean (1106066 B / 84%), `node --check` passes on
+      `web_ui/app.js`, `web_assets.h` regenerated after the UI fix.
 
 ## In Progress
 
-- Final review pass of web_ui + endpoints; optional runtime smoke checks.
-- Docs/UI final tidy; user to verify wiring and board silkscreen at build time.
+- Optional runtime smoke checks on real hardware (flash + drive + capture).
+- User to verify wiring and board silkscreen at build time.
 
 ## Open Questions For The User
 

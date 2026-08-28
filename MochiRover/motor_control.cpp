@@ -4,8 +4,9 @@
 MotorControl motors;
 
 void MotorControl::begin() {
-    // New ESP32-core (v3.x) LEDC API. Channels are pinned explicitly (1..4)
-    // so we never collide with the camera's XCLK, which uses LEDC channel 0.
+    // New ESP32-core (v3.x) LEDC API. Channels are pinned explicitly (1..4);
+    // the camera's XCLK uses the native-IDF LEDC channel 5 / timer 2, so the
+    // two never collide.
     ledcAttachChannel(PIN_MOTOR_L_IN1, MOTOR_PWM_FREQ, MOTOR_PWM_RES, 1);
     ledcAttachChannel(PIN_MOTOR_L_IN2, MOTOR_PWM_FREQ, MOTOR_PWM_RES, 2);
     ledcAttachChannel(PIN_MOTOR_R_IN3, MOTOR_PWM_FREQ, MOTOR_PWM_RES, 3);

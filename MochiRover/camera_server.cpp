@@ -20,12 +20,9 @@ public:
             _written = index;
         }
 
-        if (!_fb) {
-            if (!nextFrame()) return 0;
-        }
-
         size_t written = 0;
-        while (written < maxLen && _fb) {
+        while (written < maxLen) {
+            if (!_fb && !nextFrame()) break;
             if (_framePos < STREAM_HEADER_LEN) {
                 buf[written++] = (uint8_t)STREAM_BOUNDARY[_framePos++];
             } else if (_framePos - STREAM_HEADER_LEN < _fb->len) {
@@ -34,9 +31,6 @@ public:
             } else {
                 esp_camera_fb_return(_fb);
                 _fb = nullptr;
-                if (written < maxLen) {
-                    if (!nextFrame()) break;
-                }
             }
         }
         _written += written;
@@ -44,11 +38,11 @@ public:
     }
 
 private:
+    // Begin serving a new frame. May be invoked mid-fill when a frame ends
+    // before the buffer is full; frame bytes are appended contiguously.
     bool nextFrame() {
         _fb = esp_camera_fb_get();
         if (!_fb) return false;
-        _frameStart = _written;
-        _frameLen = STREAM_HEADER_LEN + _fb->len;
         _framePos = 0;
         return true;
     }
@@ -59,15 +53,11 @@ private:
             _fb = nullptr;
         }
         _written = 0;
-        _frameStart = 0;
-        _frameLen = 0;
         _framePos = 0;
     }
 
     camera_fb_t* _fb = nullptr;
     size_t _written = 0;
-    size_t _frameStart = 0;
-    size_t _frameLen = 0;
     size_t _framePos = 0;
 } streamPacketizer;
 
@@ -127,20 +117,32 @@ void CameraServer::applySettings() {
     s->set_vflip(s, flip ? 1 : 0);
 }
 
-void CameraServer::setupHandlers(AsyncWebServer& server) {
-    // MJPEG live stream
-    server.on("/stream", HTTP_GET, [](AsyncWebServerRequest* request) {
-        AsyncWebServerResponse* resp =
-            request->beginChunkedResponse("multipart/x-mixed-replace; boundary=frame",
-                                          streamFiller);
-        request->send(resp);
-    });
+// Single JPEG snapshot (briefly bumps to UXGA for a higher-res photo).
+// Served through a chunked filler that reads directly from the PSRAM frame
+// buffer so we never copy a large JPEG onto the internal heap.
+static camera_fb_t* s_snapFb = nullptr;
 
-    // Single JPEG snapshot (briefly bumps to UXGA for a higher-res photo)
+static size_t snapshotFiller(uint8_t* buf, size_t maxLen, size_t index) {
+    if (!s_snapFb) return 0;
+    if (index >= s_snapFb->len) {
+        esp_camera_fb_return(s_snapFb);
+        s_snapFb = nullptr;
+        return 0;   // end of response
+    }
+    size_t chunk = min(maxLen, s_snapFb->len - index);
+    memcpy(buf, s_snapFb->buf + index, chunk);
+    return chunk;
+}
+
+static void setupCapture(AsyncWebServer& server) {
     server.on("/capture", HTTP_GET, [](AsyncWebServerRequest* request) {
         sensor_t* s = esp_camera_sensor_get();
         if (!s) {
             request->send(503, "text/plain", "camera unavailable");
+            return;
+        }
+        if (s_snapFb) {
+            request->send(503, "text/plain", "busy");
             return;
         }
         framesize_t prevSize = s->status.framesize;
@@ -161,10 +163,21 @@ void CameraServer::setupHandlers(AsyncWebServer& server) {
             request->send(503, "text/plain", "camera busy");
             return;
         }
+        s_snapFb = fb;
         AsyncWebServerResponse* resp =
-            request->beginResponse(200, "image/jpeg",
-                                   String((const char*)fb->buf, fb->len));
-        esp_camera_fb_return(fb);
+            request->beginChunkedResponse("image/jpeg", snapshotFiller);
         request->send(resp);
     });
+}
+
+void CameraServer::setupHandlers(AsyncWebServer& server) {
+    // MJPEG live stream
+    server.on("/stream", HTTP_GET, [](AsyncWebServerRequest* request) {
+        AsyncWebServerResponse* resp =
+            request->beginChunkedResponse("multipart/x-mixed-replace; boundary=frame",
+                                          streamFiller);
+        request->send(resp);
+    });
+
+    setupCapture(server);
 }
