@@ -9,7 +9,7 @@
 // small state machine: idle script (blinks, saccades, micro-expressions),
 // explicit mood overrides, driving reactions and sleep.
 
-enum class MochiMood : uint8_t {
+enum class HeroMood : uint8_t {
     HAPPY = 0,
     ANGRY,
     CURIOUS,
@@ -19,12 +19,12 @@ enum class MochiMood : uint8_t {
     IDLE
 };
 
-class MochiEyes {
+class HeroEyes {
 public:
     void begin();
 
-    void setMood(MochiMood mood);
-    MochiMood mood() const { return _mood; }
+    void setMood(HeroMood mood);
+    HeroMood mood() const { return _mood; }
     const char* moodName() const;
 
     // Driving reactions (called by WebServerMgr)
@@ -74,8 +74,8 @@ private:
                   const EyePose& pose);
     void drawMouth(Adafruit_GFX& canvas, uint32_t now);
 
-    MochiMood _mood = MochiMood::IDLE;
-    MochiMood _shownMood = MochiMood::IDLE;
+    HeroMood _mood = HeroMood::IDLE;
+    HeroMood _shownMood = HeroMood::IDLE;
 
     int16_t _throttle = 0;
     int16_t _steering = 0;
@@ -111,4 +111,4 @@ private:
     float    _compactT = 0.0f;
 };
 
-extern MochiEyes eyes;
+extern HeroEyes eyes;

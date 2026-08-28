@@ -1,4 +1,8 @@
-// MochiRover - ESP32-S3-CAM rover with Dasai Mochi-style OLED eyes
+// HERO - ESP32-S3-CAM rover with Dasai Mochi-style OLED eyes
+//
+// HERO (Hazardous Environment Reconnaissance & Observation robot) is a
+// Wi-Fi-controlled rover streaming live video to a smartphone browser while
+// an animated robot face runs on an OLED.
 //
 // Board: ESP32-S3-CAM "bare clone" N16R8 (16 MB flash, 8 MB PSRAM) with OV5640
 // Motors: DRV8833 (IN1=GPIO1, IN2=GPIO14, IN3=GPIO21, IN4=GPIO42)
@@ -7,10 +11,11 @@
 //
 // See ../USER_MANUAL.md for wiring, build and configuration instructions.
 
+
 #include "config.h"
 #include "settings.h"
 #include "motor_control.h"
-#include "mochi_eyes.h"
+#include "hero_eyes.h"
 #include "display_manager.h"
 #include "wifi_helper.h"
 #include "camera_server.h"

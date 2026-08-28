@@ -1,15 +1,22 @@
 # Project State
 
+> **2026-08-28**: Project renamed **MochiRover -> HERO**
+> (Hazardous Environment Reconnaissance & Observation robot) per course-project
+> requirements. Sketch folder `MochiRover/` -> `HERO/`, `MochiRover.ino` ->
+> `HERO.ino`, `mochi_eyes.*` -> `hero_eyes.*`, AP SSID `HERO` / pass
+> `hero1234`, mDNS `hero.local`, default access token `hero`, NVS namespace
+> `hero`. Rebuild + reflash needed (NVS namespace changed).
+
 ## Summary
 
 Wi-Fi controlled RC rover for a university microcontroller lab project. Hardware:
 ESP32-S3-CAM module (**cheap bare clone**, N16R8 = 16 MB flash / 8 MB OPI PSRAM,
 OV5640 camera on ribbon/FPC), DRV8833 dual H-bridge, 2x N20 DC gear motors
 (differential/skid steering), 1.3" I2C SH1106 OLED (addr 0x3C). A smartphone-
-oriented web UI (password-gated, default `mochi`) provides an MJPEG live stream,
+oriented web UI (password-gated, default `hero`) provides an MJPEG live stream,
 forward/back/turn controls with a speed slider, still/clip capture (browser-side
 MediaRecorder), a flashlight toggle (on-board LED, GPIO2), mood buttons (6 moods),
-and a message-to-OLED text box. The OLED runs a state-driven animated "Mochi"
+and a message-to-OLED text box. The OLED runs a state-driven animated "HERO"
 character face (boot/connect -> idle -> driving -> mood override -> sleep -> text).
 
 Built from scratch per the project brief; the previous repo (AI Thinker ESP32-CAM
@@ -51,9 +58,9 @@ module GPIOs free. OLED on Wire1 (35/36) to keep the camera SCCB bus (4/5) clean
 - Arduino framework, esp32 core v3.x, board profile `esp32:esp32:esp32s3`
   (flash 16 MB QIO 80 MHz, PSRAM OPI 80 MHz).
 - Modular .ino/.h/.cpp layout, mirroring the old repo's proven split:
-  `config.h`, `settings` (NVS), `motor_control`, `mochi_eyes`, `display_manager`,
+  `config.h`, `settings` (NVS), `motor_control`, `hero_eyes`, `display_manager`,
   `wifi_helper`, `camera_server`, `web_server`, `web_ui/` embedded via generated
-  PROGMEM header (`tools/embed_web.py`), `MochiRover.ino`.
+  PROGMEM header (`tools/embed_web.py`), `HERO.ino`.
 - Web server = ESPAsyncWebServer + AsyncTCP (as in old repo) for chunked MJPEG.
 - OV5640: PIXFORMAT_JPEG, XCLK 20 MHz, fb in PSRAM, fb_count 2, grab LATEST;
   default stream SVGA (800x600), quality from NVS (default 12), all adjustable.
@@ -62,13 +69,13 @@ module GPIOs free. OLED on Wire1 (35/36) to keep the camera SCCB bus (4/5) clean
   client-side via MediaRecorder); no SD dependency.
 - USER-CONFIRMED: AP config portal for Wi-Fi provisioning (no network saved ->
   rover becomes hotspot; UI enters SSID/pass stored in NVS), captive DNS, mDNS
-  hostname `mochirover`.
-- USER-CONFIRMED: default auth password `mochi`, changeable from settings modal.
+  hostname `hero`.
+- USER-CONFIRMED: default auth password `hero`, changeable from settings modal.
 - Settings modal has rover IP/domain + optional theme control ONLY; explicitly NO
   Wi-Fi SSID/password fields (provisioning happens only in the AP portal page).
 - Drive safety: motors stop when controls are released / on disconnect.
 
-Behavioral defaults chosen (recorded, not asked): auth password default `mochi`
+Behavioral defaults chosen (recorded, not asked): auth password default `hero`
 (NVS, changeable from UI); sleep expression after 60 s of no driving input
 (SLEEP_TIMEOUT_MS, was 600 s in the old repo — shortened for lab demos); mood
 override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
@@ -82,13 +89,13 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
 - [x] Confirmed `PROJECT_STATE.md` did not exist -> treated as new project.
 - [x] Deleted all old files per brief (recoverable in git commit `0cbd870`).
 - [x] Created this PROJECT_STATE.md.
-- [x] User confirmed: AP config portal, browser-download captures, password `mochi`.
+- [x] User confirmed: AP config portal, browser-download captures, password `hero`.
 - [x] User provided web-UI layout (pasted text from screenshots).
 - [x] User confirmed board = cheap bare ESP32-S3-CAM clone (not Waveshare AIoT).
 - [x] Camera OV5640 pinout locked via two independent GitHub projects
       (jzsalinas/exp-esp32s3 + sorn-AI/ESP32_WEB_Camera) — identical pinout.
 - [x] Free-GPIO map derived; motors on 1/14/21/42, OLED I2C on 35/36, LED on 2.
-- [x] Built all firmware modules (config, settings, motor_control, mochi_eyes
+- [x] Built all firmware modules (config, settings, motor_control, hero_eyes
       6 moods, display_manager, wifi_helper, camera_server, web_server, web_ui,
       embed tool, main sketch).
 - [x] Compiles clean with `esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi`
@@ -114,12 +121,12 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
     with the absolute stream offset).
   - Provisioning UX: the old flow polled `/api/info` after the AP went away and
     reported "could not reach the network". The UI now detects the AP drop and
-    tells the user to join their Wi-Fi and open `mochirover.local`.
+    tells the user to join their Wi-Fi and open `hero.local`.
   - Removed unused `_drivingSince` / `_frameLen` / `_frameStart` members; fixed
     stale LEDC channel comment in `motor_control.cpp`.
 - [x] Docs restructured: README moved to repo root; comprehensive USER_MANUAL.md
       moved to repo root (parts, wiring, upload via arduino-cli/IDE/esptool,
-      usage, troubleshooting); `MochiRover/README.md` removed.
+      usage, troubleshooting); `HERO/README.md` removed.
 - [x] Verified: compiles clean (1106066 B / 84%), `node --check` passes on
       `web_ui/app.js`, `web_assets.h` regenerated after the UI fix.
 

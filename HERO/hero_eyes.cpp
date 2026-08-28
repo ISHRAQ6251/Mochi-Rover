@@ -1,8 +1,8 @@
-#include "mochi_eyes.h"
+#include "hero_eyes.h"
 #include "config.h"
 #include <math.h>
 
-MochiEyes eyes;
+HeroEyes eyes;
 
 // face geometry on the 128x64 OLED
 static const int16_t EYE_W = 44;
@@ -28,29 +28,29 @@ static void drawArc(Adafruit_GFX& c, int16_t cx, int16_t cy, int16_t r,
     }
 }
 
-void MochiEyes::begin() {
+void HeroEyes::begin() {
     _lastUpdate = millis();
     _nextBlinkAt = millis() + 1800;
     _nextSaccadeAt = millis() + 1200;
 }
 
-const char* MochiEyes::moodName() const {
+const char* HeroEyes::moodName() const {
     switch (_mood) {
-        case MochiMood::HAPPY:    return "happy";
-        case MochiMood::ANGRY:    return "angry";
-        case MochiMood::CURIOUS:  return "curious";
-        case MochiMood::DEAD:     return "dead";
-        case MochiMood::SLEEPY:   return "sleepy";
-        case MochiMood::WINK:     return "wink";
-        case MochiMood::IDLE:     return "idle";
+        case HeroMood::HAPPY:    return "happy";
+        case HeroMood::ANGRY:    return "angry";
+        case HeroMood::CURIOUS:  return "curious";
+        case HeroMood::DEAD:     return "dead";
+        case HeroMood::SLEEPY:   return "sleepy";
+        case HeroMood::WINK:     return "wink";
+        case HeroMood::IDLE:     return "idle";
     }
     return "idle";
 }
 
-void MochiEyes::setMood(MochiMood m) {
+void HeroEyes::setMood(HeroMood m) {
     _mood = m;
     switch (m) {
-        case MochiMood::WINK:
+        case HeroMood::WINK:
             _moodUntil = millis() + 1500;
             break;
         default:
@@ -59,32 +59,32 @@ void MochiEyes::setMood(MochiMood m) {
     }
 }
 
-void MochiEyes::setDriving(int16_t throttle, int16_t steering) {
+void HeroEyes::setDriving(int16_t throttle, int16_t steering) {
     _throttle = throttle;
     _steering = steering;
 }
 
-void MochiEyes::setSleeping(bool sleeping) {
+void HeroEyes::setSleeping(bool sleeping) {
     _sleeping = sleeping;
     if (sleeping) {
         _blinkUntil = 0;
     }
 }
 
-void MochiEyes::setAnimEnabled(bool enabled) {
+void HeroEyes::setAnimEnabled(bool enabled) {
     _animEnabled = enabled;
     if (!enabled) {
         _blinkUntil = 0;
     }
 }
 
-void MochiEyes::setCompact(bool compact) {
+void HeroEyes::setCompact(bool compact) {
     _compact = compact;
 }
 
 // Autonomous idle behavior script: the character periodically looks around,
 // blinks, and spontaneously shifts through small expressions while idle.
-void MochiEyes::updateIdleScript(uint32_t now) {
+void HeroEyes::updateIdleScript(uint32_t now) {
     if (now >= _idleNextPickAt) {
         uint8_t r = (uint8_t)random(0, 100);
         if (r < 40) {
@@ -147,14 +147,14 @@ void MochiEyes::updateIdleScript(uint32_t now) {
     }
 }
 
-void MochiEyes::update(uint32_t now) {
+void HeroEyes::update(uint32_t now) {
     uint32_t dt = (uint32_t)min((uint32_t)(now - _lastUpdate), 50UL);
     _lastUpdate = now;
 
     // transient moods expire back to idle
     if (_moodUntil && now >= _moodUntil) {
         _moodUntil = 0;
-        _mood = MochiMood::IDLE;
+        _mood = HeroMood::IDLE;
     }
 
     // blinking
@@ -167,7 +167,7 @@ void MochiEyes::update(uint32_t now) {
     }
 
     // saccades while idle
-    if (_animEnabled && !_sleeping && _mood == MochiMood::IDLE && !(_throttle != 0 || _steering != 0)) {
+    if (_animEnabled && !_sleeping && _mood == HeroMood::IDLE && !(_throttle != 0 || _steering != 0)) {
         if (_idlePose != IdlePose::LOOK && now >= _nextSaccadeAt) {
             _targetPupilX = random(-4, 5);
             _targetPupilY = random(-4, 5);
@@ -198,12 +198,12 @@ void MochiEyes::update(uint32_t now) {
         _targetSaccadeX = 0;
         _targetSaccadeY = 0;
         switch (_mood) {
-            case MochiMood::HAPPY:    _targetLid = 255; _targetPupilX = 0; _targetPupilY = -6; _brow = 200; break;
-            case MochiMood::ANGRY:    _targetLid = 230; _targetPupilX = 0; _targetPupilY = 2;  _brow = 60;  break;
-            case MochiMood::CURIOUS:  _targetLid = 255; _targetPupilX = 5; _targetPupilY = -4; _brow = 190; break;
-            case MochiMood::DEAD:     _targetLid = 255; _targetPupilX = 0; _targetPupilY = 0;  _brow = 128; break;
-            case MochiMood::SLEEPY:   _targetLid = 60;  _targetPupilX = 0; _targetPupilY = 2;  _brow = 160; break;
-            case MochiMood::IDLE:
+            case HeroMood::HAPPY:    _targetLid = 255; _targetPupilX = 0; _targetPupilY = -6; _brow = 200; break;
+            case HeroMood::ANGRY:    _targetLid = 230; _targetPupilX = 0; _targetPupilY = 2;  _brow = 60;  break;
+            case HeroMood::CURIOUS:  _targetLid = 255; _targetPupilX = 5; _targetPupilY = -4; _brow = 190; break;
+            case HeroMood::DEAD:     _targetLid = 255; _targetPupilX = 0; _targetPupilY = 0;  _brow = 128; break;
+            case HeroMood::SLEEPY:   _targetLid = 60;  _targetPupilX = 0; _targetPupilY = 2;  _brow = 160; break;
+            case HeroMood::IDLE:
             default:
                 _targetLid = 255;
                 _targetPupilX = _targetSaccadeX;
@@ -284,7 +284,7 @@ void MochiEyes::update(uint32_t now) {
     }
 }
 
-MochiEyes::EyePose MochiEyes::computePose(bool left, uint32_t now) {
+HeroEyes::EyePose HeroEyes::computePose(bool left, uint32_t now) {
     EyePose p;
     p.px = _pupilX;
     p.py = _pupilY;
@@ -305,16 +305,16 @@ MochiEyes::EyePose MochiEyes::computePose(bool left, uint32_t now) {
         }
     }
 
-    if (_mood == MochiMood::WINK && !left) {
+    if (_mood == HeroMood::WINK && !left) {
         p.lid = 0;
     }
-    if (_mood == MochiMood::IDLE && _idlePose == IdlePose::WINK && !left) {
+    if (_mood == HeroMood::IDLE && _idlePose == IdlePose::WINK && !left) {
         p.lid = 0;
     }
     return p;
 }
 
-void MochiEyes::drawEye(Adafruit_GFX& c, int16_t x, int16_t y, int16_t w, int16_t h,
+void HeroEyes::drawEye(Adafruit_GFX& c, int16_t x, int16_t y, int16_t w, int16_t h,
                         const EyePose& p, bool left, uint32_t now) {
     (void)left;
     (void)now;
@@ -324,7 +324,7 @@ void MochiEyes::drawEye(Adafruit_GFX& c, int16_t x, int16_t y, int16_t w, int16_
     c.fillRect(x, y, w, h, 1);      // sclera
     c.drawRect(x, y, w, h, 0);
 
-    if (_shownMood == MochiMood::DEAD) {
+    if (_shownMood == HeroMood::DEAD) {
         int16_t r = w / 4;
         c.drawLine(cx - r, cy - r, cx + r, cy + r, 0);
         c.drawLine(cx + r, cy - r, cx - r, cy + r, 0);
@@ -348,18 +348,18 @@ void MochiEyes::drawEye(Adafruit_GFX& c, int16_t x, int16_t y, int16_t w, int16_
     }
 }
 
-void MochiEyes::drawBrow(Adafruit_GFX& c, int16_t x, int16_t y, int16_t w, bool left,
+void HeroEyes::drawBrow(Adafruit_GFX& c, int16_t x, int16_t y, int16_t w, bool left,
                          const EyePose& p) {
     int16_t baseY = y - 2;
     int16_t lift = (200 - (int16_t)p.brow) / 40;
     int16_t yL, yR;
 
     switch (_shownMood) {
-        case MochiMood::ANGRY:   // inner end lower
+        case HeroMood::ANGRY:   // inner end lower
             yL = baseY + lift + (left ? -2 : 2);
             yR = baseY + lift + (left ? 2 : -2);
             break;
-        case MochiMood::CURIOUS:
+        case HeroMood::CURIOUS:
             yL = baseY + (left ? lift + 3 : lift);
             yR = baseY + (left ? lift + 3 : lift);
             break;
@@ -371,7 +371,7 @@ void MochiEyes::drawBrow(Adafruit_GFX& c, int16_t x, int16_t y, int16_t w, bool 
     c.drawLine(x + 4, yL, x + w - 4, yR, 1);
 }
 
-void MochiEyes::render(Adafruit_GFX& c, uint32_t now) {
+void HeroEyes::render(Adafruit_GFX& c, uint32_t now) {
     _shownMood = _mood;
 
     // interpolate geometry between full size and compact (text) layout
@@ -412,13 +412,13 @@ void MochiEyes::render(Adafruit_GFX& c, uint32_t now) {
     }
 }
 
-void MochiEyes::drawMouth(Adafruit_GFX& c, uint32_t now) {
+void HeroEyes::drawMouth(Adafruit_GFX& c, uint32_t now) {
     (void)now;
     int16_t cx = 64;
     int16_t cy = MOUTH_Y;
 
     bool driving = (_throttle != 0 || _steering != 0);
-    bool idleAuto = (_shownMood == MochiMood::IDLE && !_sleeping && !driving);
+    bool idleAuto = (_shownMood == HeroMood::IDLE && !_sleeping && !driving);
 
     if (_sleeping) {
         c.drawLine(cx - 8, cy, cx + 8, cy, 1);
@@ -442,17 +442,17 @@ void MochiEyes::drawMouth(Adafruit_GFX& c, uint32_t now) {
         }
     } else {
         switch (_shownMood) {
-            case MochiMood::HAPPY:
+            case HeroMood::HAPPY:
                 drawArc(c, cx, cy + 6, 9, (float)(PI / 6), (float)(5 * PI / 6), 1);
                 break;
-            case MochiMood::ANGRY:
+            case HeroMood::ANGRY:
                 drawArc(c, cx, cy + 4, 8, (float)(7 * PI / 6), (float)(11 * PI / 6), 1);
                 break;
-            case MochiMood::DEAD:
+            case HeroMood::DEAD:
                 c.drawLine(cx - 7, cy, cx + 7, cy, 1);
                 c.drawLine(cx - 3, cy - 2, cx + 3, cy - 2, 1);
                 break;
-            case MochiMood::CURIOUS:
+            case HeroMood::CURIOUS:
                 c.fillCircle(cx, cy + 1, 2, 1);
                 break;
             default:

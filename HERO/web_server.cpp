@@ -2,7 +2,7 @@
 #include "config.h"
 #include "settings.h"
 #include "motor_control.h"
-#include "mochi_eyes.h"
+#include "hero_eyes.h"
 #include "display_manager.h"
 #include "wifi_helper.h"
 #include "camera_server.h"
@@ -23,14 +23,14 @@ static void unauthorized(AsyncWebServerRequest* request) {
     request->send(401, "application/json", "{\"ok\":false,\"error\":\"unauthorized\"}");
 }
 
-static MochiMood parseMood(const String& s) {
-    if (s == "happy") return MochiMood::HAPPY;
-    if (s == "angry") return MochiMood::ANGRY;
-    if (s == "curious") return MochiMood::CURIOUS;
-    if (s == "dead") return MochiMood::DEAD;
-    if (s == "sleepy") return MochiMood::SLEEPY;
-    if (s == "wink") return MochiMood::WINK;
-    return MochiMood::IDLE;
+static HeroMood parseMood(const String& s) {
+    if (s == "happy") return HeroMood::HAPPY;
+    if (s == "angry") return HeroMood::ANGRY;
+    if (s == "curious") return HeroMood::CURIOUS;
+    if (s == "dead") return HeroMood::DEAD;
+    if (s == "sleepy") return HeroMood::SLEEPY;
+    if (s == "wink") return HeroMood::WINK;
+    return HeroMood::IDLE;
 }
 
 static String jsonEscape(const char* s) {

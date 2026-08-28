@@ -15,7 +15,7 @@ void WifiHelper::begin() {
         startAp();
     }
 
-    // mDNS so the UI can use http://mochirover.local
+    // mDNS so the UI can use http://hero.local
     if (MDNS.begin(HOSTNAME)) {
         MDNS.addService("http", "tcp", HTTP_PORT);
     }

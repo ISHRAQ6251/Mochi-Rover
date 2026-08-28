@@ -60,20 +60,20 @@
 // ---------------------------------------------------------------------------
 // Wi-Fi / networking
 // ---------------------------------------------------------------------------
-#define HOSTNAME          "mochirover"
-#define AP_SSID           "MochiRover"
-#define AP_PASS           "mochi1234"
+#define HOSTNAME          "hero"
+#define AP_SSID           "HERO"
+#define AP_PASS           "hero1234"
 #define HTTP_PORT         80
 
 // ---------------------------------------------------------------------------
 // Auth
 // ---------------------------------------------------------------------------
-#define AUTH_DEFAULT_TOKEN "mochi"
+#define AUTH_DEFAULT_TOKEN "hero"
 
 // ---------------------------------------------------------------------------
 // NVS
 // ---------------------------------------------------------------------------
-#define NVS_NAMESPACE     "mochirover"
+#define NVS_NAMESPACE     "hero"
 #define NVS_KEY_SSID      "wifi_ssid"
 #define NVS_KEY_PASS      "wifi_pass"
 #define NVS_KEY_TOKEN     "auth_token"

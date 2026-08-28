@@ -3,7 +3,7 @@
 const $ = (id) => document.getElementById(id);
 
 const state = {
-  token: localStorage.getItem("mochi_token") || "",
+  token: localStorage.getItem("hero_token") || "",
   throttle: 0,
   steering: 0,
   speedScale: 255,
@@ -37,7 +37,7 @@ async function api(path, body) {
 function applyTheme(t) {
   document.documentElement.classList.toggle("light", t === "light");
 }
-applyTheme(localStorage.getItem("mochi_theme") || "dark");
+applyTheme(localStorage.getItem("hero_theme") || "dark");
 
 /* ---------------- boot flow ---------------- */
 async function boot() {
@@ -75,7 +75,7 @@ $("setupSave").addEventListener("click", async () => {
       // this phone can no longer reach it. Guide the user to the next step.
       clearInterval(poll);
       $("setupMsg").textContent =
-        'Wi-Fi saved! Join "' + ssid + '" on this phone, then open http://mochirover.local (token: mochi)';
+        'Wi-Fi saved! Join "' + ssid + '" on this phone, then open http://hero.local (token: hero)';
       return;
     }
     if (info.ok && info.data.connected && !info.data.apMode) {
@@ -96,7 +96,7 @@ async function unlock() {
   const r = await api("/api/auth", { token: t });
   if (r.ok && r.data.ok) {
     state.token = t;
-    localStorage.setItem("mochi_token", t);
+    localStorage.setItem("hero_token", t);
     $("authGate").classList.add("hidden");
     $("authErr").textContent = "";
     const st = await api("/api/state");
@@ -137,7 +137,7 @@ $("photoBtn").addEventListener("click", async () => {
     const a = document.createElement("a");
     const url = URL.createObjectURL(blob);
     a.href = url;
-    a.download = "mochi_" + new Date().toISOString().replace(/[:.]/g, "-") + ".jpg";
+    a.download = "hero_" + new Date().toISOString().replace(/[:.]/g, "-") + ".jpg";
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -194,7 +194,7 @@ $("recBtn").addEventListener("click", () => {
   recorder = new MediaRecorder(stream, { mimeType: mime });
   recorder.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
   recorder.onstop = () => {
-    downloadBlob(new Blob(chunks, { type: mime }), "mochi_clip.webm");
+    downloadBlob(new Blob(chunks, { type: mime }), "hero_clip.webm");
     recCanvas = null;
   };
   recorder.start(1000);
@@ -328,7 +328,7 @@ $("flashBtn").addEventListener("click", () => setFlashlight(!state.flashlight));
 /* ---------------- settings modal ---------------- */
 function openSettings() {
   $("setIp").value = state.ip || "192.168.4.1";
-  $("setTheme").value = localStorage.getItem("mochi_theme") || "dark";
+  $("setTheme").value = localStorage.getItem("hero_theme") || "dark";
   $("setToken").value = "";
   $("settingsMsg").textContent = "";
   $("settingsModal").classList.remove("hidden");
@@ -339,7 +339,7 @@ $("settingsClose").addEventListener("click", () => $("settingsModal").classList.
 $("settingsSave").addEventListener("click", async () => {
   const msg = $("settingsMsg");
   const theme = $("setTheme").value;
-  localStorage.setItem("mochi_theme", theme);
+  localStorage.setItem("hero_theme", theme);
   applyTheme(theme);
 
   const newToken = $("setToken").value.trim();
@@ -347,7 +347,7 @@ $("settingsSave").addEventListener("click", async () => {
     const r = await api("/api/token", { token: newToken });
     if (r.ok) {
       state.token = newToken;
-      localStorage.setItem("mochi_token", newToken);
+      localStorage.setItem("hero_token", newToken);
       msg.textContent = "Token updated. Saved.";
     } else {
       msg.textContent = "Token must be at least 4 characters.";
@@ -365,7 +365,7 @@ async function pollState() {
   if (!r.ok) {
     if (r.status === 401) {
       $("app").classList.add("hidden");
-      localStorage.removeItem("mochi_token");
+      localStorage.removeItem("hero_token");
       state.token = "";
       $("authGate").classList.remove("hidden");
     }

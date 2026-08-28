@@ -5,7 +5,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SH110X.h>
 #include "config.h"
-#include "mochi_eyes.h"
+#include "hero_eyes.h"
 
 // Display priority (highest first):
 //   boot -> connection -> text(persistent) -> sleep -> mood/driving -> idle
@@ -16,7 +16,7 @@ public:
     void update(uint32_t now);   // decide screen, render, push to OLED
 
     // external inputs
-    void setMood(MochiMood mood);
+    void setMood(HeroMood mood);
     void showMessage(const char* text);  // persists until clearMessage()
     void clearMessage();
     bool messageActive() const { return _message[0] != 0; }
@@ -49,7 +49,7 @@ private:
 
     char _message[64] = {0};
 
-    MochiMood _mood = MochiMood::IDLE;
+    HeroMood _mood = HeroMood::IDLE;
     bool _sleeping = false;
 };
 

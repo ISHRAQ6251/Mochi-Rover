@@ -1,9 +1,9 @@
-# MochiRover
+# HERO
 
 Wi-Fi controlled RC rover for a university microcontroller lab project.
 
 An ESP32-S3-CAM module streams live video over Wi-Fi to a phone browser while a
-little "Mochi" robot face with animated eyes runs on an OLED. The browser is a
+little "HERO" robot face with animated eyes runs on an OLED. The browser is a
 password-gated cockpit: differential drive pads, a speed slider, photo + video
 clip capture, a flashlight toggle, six mood buttons and a message-to-OLED box.
 
@@ -12,7 +12,7 @@ clip capture, a flashlight toggle, six mood buttons and a message-to-OLED box.
 > **Building or using the rover?** Start with the
 > [User Manual](USER_MANUAL.md) - it has the full parts list, step-by-step
 > wiring, code upload instructions and the complete driving guide.
-> The [Functionality Reference](MochiRover/FUNCTIONALITY.md) documents every
+> The [Functionality Reference](HERO/FUNCTIONALITY.md) documents every
 > API endpoint, the OLED state machine and the face engine.
 
 ## Features
@@ -23,14 +23,14 @@ clip capture, a flashlight toggle, six mood buttons and a message-to-OLED box.
   video clips - no SD card required.
 - **Differential drive**: hold-to-move steering/throttle pads with arcade
   throttle+steering mixing and a 0-255 speed slider.
-- **"Mochi" OLED face**: procedural animated eyes (blinks, saccades, idle
+- **"HERO" OLED face**: procedural animated eyes (blinks, saccades, idle
   script), six moods, driving reactions and a sleep state; plus a persistent
   message-to-OLED box.
 - **Flashlight** toggle on the onboard LED.
-- **Access-token auth** (default `mochi`), changeable from the settings panel.
+- **Access-token auth** (default `hero`), changeable from the settings panel.
 - **Self-configuring Wi-Fi**: STA-first, automatic SoftAP configuration portal
-  (`MochiRover` / `mochi1234`) for first-time setup, mDNS as
-  `http://mochirover.local`.
+  (`HERO` / `hero1234`) for first-time setup, mDNS as
+  `http://hero.local`.
 
 ## Hardware
 
@@ -80,11 +80,11 @@ arduino-cli lib install "ESPAsyncWebServer" "AsyncTCP" \
   "Adafruit GFX Library" "Adafruit SH110X" "Adafruit BusIO"
 
 # compile
-arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi MochiRover
+arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi HERO
 
 # upload (board must be in download mode: hold BOOT, tap RST, release BOOT)
 arduino-cli upload -p /dev/ttyACM0 \
-  --fqbn esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi MochiRover
+  --fqbn esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi HERO
 ```
 
 `FlashSize=16M` and `PSRAM=opi` are important: the N16R8 has 16 MB flash and
@@ -98,28 +98,35 @@ handling and troubleshooting are in the [User Manual](USER_MANUAL.md).
 ## Quick usage
 
 1. Power the rover. With no saved network it starts a SoftAP named
-   **MochiRover** (password `mochi1234`).
+   **HERO** (password `hero1234`).
 2. Join that network, open `http://192.168.4.1`, enter your lab Wi-Fi SSID and
    password, tap **Connect**, then join your lab Wi-Fi again.
-3. Open `http://mochirover.local` and unlock with the access token (default
-   **`mochi`**).
+3. Open `http://hero.local` and unlock with the access token (default
+   **`hero`**).
 4. Drive with the ◀ ▶ ▲ ▼ buttons, adjust speed, change the mood with 👀,
    capture from the video panel, and send messages to the OLED.
 
 Power-cycling the rover returns it to setup mode if it cannot reach the saved
 network. See the [User Manual](USER_MANUAL.md) for the full cockpit tour.
 
+## Project proposal
+
+The group project proposal (`Project_Proposal_HERO.docx`) covers the required
+course submission format: group member table, title + short description, key
+features, equipment list, design considerations, workflow, expected outcome and
+timeline, with placeholder boxes for the circuit diagram and 3D chassis render.
+
 ## Project layout
 
 ```
 README.md                 this file
 USER_MANUAL.md            parts list, wiring, upload and usage guide
-MochiRover/               Arduino sketch
-  MochiRover.ino          main sketch
+HERO/               Arduino sketch
+  HERO.ino          main sketch
   config.h                pins + constants
   settings.h/.cpp         NVS-persisted settings
   motor_control.h/.cpp    DRV8833 PWM driver
-  mochi_eyes.h/.cpp       procedural animated OLED face (6 moods)
+  hero_eyes.h/.cpp       procedural animated OLED face (6 moods)
   display_manager.h/.cpp  OLED state machine + screens
   wifi_helper.h/.cpp      STA-first, AP config portal, mDNS
   camera_server.h/.cpp    OV5640 MJPEG stream + snapshot

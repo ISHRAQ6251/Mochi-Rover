@@ -1,6 +1,6 @@
-# MochiRover - User Manual
+# HERO - User Manual
 
-A step-by-step guide for building, uploading and driving your MochiRover.
+A step-by-step guide for building, uploading and driving your HERO.
 
 ---
 
@@ -67,7 +67,7 @@ arduino-cli lib install "ESPAsyncWebServer" "AsyncTCP" \
 ### 2.4 Compile the sketch
 
 ```bash
-arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi MochiRover
+arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi HERO
 ```
 
 `FlashSize=16M` and `PSRAM=opi` are important - the N16R8 board needs both.
@@ -92,7 +92,7 @@ If you prefer the Arduino IDE over the command line:
    (pick the versions that support the ESP32 core 3.x - the actively maintained
    forks), plus **Adafruit GFX Library**, **Adafruit SH110X**, **Adafruit
    BusIO**.
-5. Open `MochiRover/MochiRover.ino`. It auto-loads the other files in the
+5. Open `HERO/HERO.ino`. It auto-loads the other files in the
    folder.
 6. **Tools > Board > esp32 > ESP32S3 Dev Module**, then set:
    - **Flash Size**: `16MB (128Mb)`
@@ -180,7 +180,7 @@ arduino-cli board list
 
 ```bash
 arduino-cli upload -p /dev/ttyACM0 \
-  --fqbn esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi MochiRover
+  --fqbn esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi HERO
 ```
 
 Replace `/dev/ttyACM0` with the port from the previous step.
@@ -220,11 +220,11 @@ built binary with a single command:
 
 ```bash
 # find the built binary
-ls MochiRover/build/*/MochiRover.ino.bin
+ls HERO/build/*/HERO.ino.bin
 
 # flash (merge puts the app at the right 0x10000 offset with the correct flash size)
 python3 -m esptool --chip esp32s3 --port /dev/ttyACM0 \
-  --baud 921600 write_flash 0x0 MochiRover/build/*/MochiRover.ino.merged.bin
+  --baud 921600 write_flash 0x0 HERO/build/*/HERO.ino.merged.bin
 ```
 
 Using the `.merged.bin` (if the core produces one) sets the correct bootloader,
@@ -241,8 +241,8 @@ The rover has no network saved on first boot, so it opens its own Wi-Fi network
 (called a SoftAP):
 
 1. Power the rover.
-2. On your phone, join the Wi-Fi network **`MochiRover`** (password
-   **`mochi1234`**). A captive-portal login window may pop up automatically.
+2. On your phone, join the Wi-Fi network **`HERO`** (password
+   **`hero1234`**). A captive-portal login window may pop up automatically.
 3. Open `http://192.168.4.1` in a browser.
 4. Enter your lab Wi-Fi name (SSID) and password, then tap **Save / Connect**.
 5. The rover switches to your network. Back on your phone, join the **lab
@@ -254,16 +254,16 @@ The rover remembers these credentials, so you only do this once.
 
 On the lab Wi-Fi, open one of these on your phone:
 
-- `http://mochirover.local` (mDNS - works on most phones)
+- `http://hero.local` (mDNS - works on most phones)
 - `http://<rover-ip>` where `<rover-ip>` is the address shown on the rover's
   status screen (or shown in the OLED CONNECTION screen / on the AP page).
 
-You will be asked for the **access token** - the default is **`mochi`**. Change
+You will be asked for the **access token** - the default is **`hero`**. Change
 it later in the ⚙️ settings panel.
 
 ### 5.3 The control page (cockpit)
 
-- **Top bar** - the "Mochi" logo, a status pill (green dot = connected to the
+- **Top bar** - the "HERO" logo, a status pill (green dot = connected to the
   rover, and a camera dot that lights when live video is arriving), then three
   buttons: **🔦** flashlight, **👀** quick mood popup, **⚙️** settings.
 - **Video panel** - live stream. Overlay buttons: **🔄** flip/refresh (mirrors
@@ -285,7 +285,7 @@ it later in the ⚙️ settings panel.
 
 ### 5.4 What the OLED shows
 
-- **Boot screen** - "Mochi Rover / Booting..." with a progress bar.
+- **Boot screen** - "HERO / Booting..." with a progress bar.
 - **Connection screen** - the rover's IP address, or `AP: 192.168.4.1` in setup
   mode.
 - **The face** - the little robot with animated blinking eyes and idle
@@ -299,9 +299,9 @@ it later in the ⚙️ settings panel.
 ### 5.5 Photos and clips
 
 - **Photo** - a still is captured at high resolution (1600x1200) and downloads
-  as `mochi_<timestamp>.jpg`.
+  as `hero_<timestamp>.jpg`.
 - **Clip** - recording is done on your phone's browser (WebM), so no SD card is
-  needed. It downloads as `mochi_clip.webm` when you stop recording. Note that
+  needed. It downloads as `hero_clip.webm` when you stop recording. Note that
   the stream must be live (green CAM dot) for recording to work.
 
 ### 5.6 Settings (⚙️)
@@ -316,7 +316,7 @@ it later in the ⚙️ settings panel.
 
 If the rover cannot reach the saved Wi-Fi (new lab, router restarted, wrong
 password), power-cycle it. After ~10 seconds of failed connection it opens the
-`MochiRover` setup network again and you can re-provision it from
+`HERO` setup network again and you can re-provision it from
 `http://192.168.4.1`.
 
 ---
@@ -330,9 +330,9 @@ password), power-cycle it. After ~10 seconds of failed connection it opens the
 | Motors do not spin | Check DRV8833 power (VM/GND), `nSLEEP` tied to 3.3 V, and IN wires; try 100 on the speed slider |
 | One motor spins backwards | Swap that motor's two wires on the driver |
 | Motors spin but the rover turns wrong way | Swap the left/right motor channels (AO/BO) |
-| Can't find `mochirover.local` | Use the rover's IP instead (shown on the OLED connection screen); mDNS needs your phone to be on the same network |
-| Rover keeps entering setup mode | Wi-Fi password changed or wrong SSID - re-provision from the `MochiRover` AP |
-| Lost the access token | Reflash the firmware to restore the default token `mochi` |
+| Can't find `hero.local` | Use the rover's IP instead (shown on the OLED connection screen); mDNS needs your phone to be on the same network |
+| Rover keeps entering setup mode | Wi-Fi password changed or wrong SSID - re-provision from the `HERO` AP |
+| Lost the access token | Reflash the firmware to restore the default token `hero` |
 | Flickering / purple video | Lower camera XCLK from 20 MHz to 10 MHz in `camera_server.cpp` |
 | Face shows "AP:" IP | The rover is in setup mode - provision Wi-Fi from `http://192.168.4.1` |
 | Video freezes briefly, CAM dot red, then recovers | The stream drops and auto-reconnects after ~2.5 s - normal if the camera is busy capturing a photo; avoid tapping 📷 while driving |

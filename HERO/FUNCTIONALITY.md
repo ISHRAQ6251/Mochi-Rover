@@ -1,10 +1,10 @@
-# MochiRover - Functionality Reference
+# HERO - Functionality Reference
 
 ## Overview
 
-MochiRover is a Wi-Fi controlled rover built on an ESP32-S3-CAM (OV5640, N16R8).
+HERO is a Wi-Fi controlled rover built on an ESP32-S3-CAM (OV5640, N16R8).
 A phone browser provides an MJPEG live view plus a full remote-control cockpit;
-the on-board SH1106 OLED runs an animated "Mochi" face that reacts to state,
+the on-board SH1106 OLED runs an animated "HERO" face that reacts to state,
 moods, driving and messages.
 
 ## Feature list
@@ -13,9 +13,9 @@ moods, driving and messages.
   via NVS; XCLK 20 MHz, PSRAM frame buffers, `CAMERA_GRAB_LATEST` for low latency.
 - Browser-side captures:
   - Photo: `/capture` temporarily bumps to UXGA (1600x1200) JPEG, downloaded as
-    `mochi_<timestamp>.jpg`.
+    `hero_<timestamp>.jpg`.
   - Clip: recorded client-side with MediaRecorder (VP9/VP8 WebM) by drawing the
-    stream to a hidden canvas; downloaded as `mochi_clip.webm`. No SD card used.
+    stream to a hidden canvas; downloaded as `hero_clip.webm`. No SD card used.
 - Differential drive: ◀ ▶ ▲ ▼ hold-to-move buttons, speed slider (0-255), stop
   on release, arcade-style throttle + steering mixing on the DRV8833.
 - Flashlight toggle driving the on-board LED on GPIO2.
@@ -29,15 +29,15 @@ moods, driving and messages.
   wide-eyed "whoa" kick on drive start, driving-reaction eyes, and a Zzz sleep
   state after 60 s without input.
 - Network: STA-first; falls back to a SoftAP configuration portal
-  (`MochiRover` / `mochi1234`) with captive DNS; mDNS hostname `mochirover`.
-- Auth: token-gated control API (default token `mochi`, changeable in Settings).
+  (`HERO` / `hero1234`) with captive DNS; mDNS hostname `hero`.
+- Auth: token-gated control API (default token `hero`, changeable in Settings).
   Streaming and the provisioning endpoint in AP mode are intentionally open.
 
 ## Web UI
 
 Smartphone-first dark UI with a light theme option (saved in the browser):
 
-- Header: robot wordmark "🤖 Mochi", a status pill (red/green CTRL dot for
+- Header: robot wordmark "🤖 HERO", a status pill (red/green CTRL dot for
   connection, CAM dot for live feed), and 🔦 / 👀 / ⚙️ buttons.
 - Rounded video panel with overlay buttons: 🔄 flip/refresh (mirror+vflip the
   image and reload the stream), 📷 capture photo, ● record clip (turns ⏹ while
@@ -88,7 +88,7 @@ BOOT (1.5 s) -> CONNECTION (until Wi-Fi is up) -> TEXT (persistent message)
             -> sleep (Zzz) -> mood / driving / idle face
 ```
 
-- **BOOT**: "Mochi Rover / Booting..." with an animated progress bar.
+- **BOOT**: "HERO / Booting..." with an animated progress bar.
 - **CONNECTION**: shows `AP: 192.168.4.1` in setup mode, or "Connecting...".
 - **TEXT**: compact eyes on top + a rounded text box with the wrapped message
   (up to 3 lines, ellipsized). The message persists until cleared; the ✕

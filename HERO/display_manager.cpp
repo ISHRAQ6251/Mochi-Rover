@@ -17,7 +17,7 @@ void DisplayManager::begin() {
     eyes.setAnimEnabled(settings.data.oledAnim);
 }
 
-void DisplayManager::setMood(MochiMood mood) {
+void DisplayManager::setMood(HeroMood mood) {
     _mood = mood;
     eyes.setMood(mood);
     notifyActivity();
@@ -94,7 +94,7 @@ void DisplayManager::renderBoot() {
     _canvas.setTextColor(1);
     _canvas.setTextSize(1);
     _canvas.setCursor(22, 20);
-    _canvas.print("Mochi Rover");
+    _canvas.print("HERO");
     _canvas.setCursor(30, 34);
     _canvas.print("Booting...");
 
