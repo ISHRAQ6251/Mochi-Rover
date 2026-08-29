@@ -214,6 +214,7 @@ $("recBtn").addEventListener("click", () => {
 
 /* ---------------- drive (4-button pad) ---------------- */
 const held = new Set();
+let driveKeepAlive = null;
 
 function computeDrive() {
   const sp = state.speedScale;
@@ -227,6 +228,19 @@ function computeDrive() {
   api("/api/drive", { throttle, steering });
 }
 
+// While any button is held, re-send the drive command every 300 ms. The rover
+// stops the motors if no drive/stop command arrives for ~1.5 s, so this also
+// acts as a keep-alive for the firmware's disconnect safety watchdog.
+function startDriveKeepAlive() {
+  if (driveKeepAlive) return;
+  driveKeepAlive = setInterval(() => {
+    if (held.size > 0) computeDrive();
+  }, 300);
+}
+function stopDriveKeepAlive() {
+  if (driveKeepAlive) { clearInterval(driveKeepAlive); driveKeepAlive = null; }
+}
+
 function bindCtrl(id, key) {
   const el = $(id);
   const down = (e) => {
@@ -237,6 +251,7 @@ function bindCtrl(id, key) {
     held.add(key);
     el.classList.add("active");
     computeDrive();
+    startDriveKeepAlive();
   };
   const up = (e) => {
     e.preventDefault();
@@ -246,6 +261,7 @@ function bindCtrl(id, key) {
       state.throttle = 0;
       state.steering = 0;
       api("/api/stop", {});
+      stopDriveKeepAlive();
     } else {
       computeDrive();
     }

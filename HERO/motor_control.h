@@ -26,7 +26,10 @@ public:
     // Coast both motors.
     void stop();
 
-    void update();   // call frequently
+    // Call frequently. Implements the drive watchdog: if no drive/stop command
+    // has been received within DRIVE_WATCHDOG_MS the motors coast, so the rover
+    // never keeps running after the app disconnects or is closed.
+    void update();
 
     int16_t throttle() const { return _throttle; }
     int16_t steering() const { return _steering; }
@@ -36,6 +39,7 @@ private:
 
     int16_t _throttle = 0;
     int16_t _steering = 0;
+    uint32_t _lastCmdAt = 0;
 };
 
 extern MotorControl motors;

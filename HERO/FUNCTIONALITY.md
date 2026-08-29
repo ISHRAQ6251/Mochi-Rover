@@ -18,6 +18,10 @@ moods, driving and messages.
     stream to a hidden canvas; downloaded as `hero_clip.webm`. No SD card used.
 - Differential drive: ◀ ▶ ▲ ▼ hold-to-move buttons, speed slider (0-255), stop
   on release, arcade-style throttle + steering mixing on the DRV8833.
+- Drive safety watchdog: the UI re-sends the drive command every 300 ms while a
+  button is held; if no drive/stop command reaches the rover for ~1.5 s
+  (`DRIVE_WATCHDOG_MS`) the motors coast automatically. A dropped connection,
+  closed tab or killed app can therefore never leave the rover driving itself.
 - Flashlight toggle driving the on-board LED on GPIO2.
 - Mood system: six moods (Happy, Angry, Curious, Dead, Sleepy, Wink) shown both
   in a quick popup (👀) and a dropdown. A mood override lasts ~4 s (Wink 1.5 s)
@@ -66,7 +70,7 @@ or a `?token=` query parameter.
 | `/api/auth` | POST | - | `token` | Verify token |
 | `/api/wifi` | POST | AP only | `ssid`, `pass` | Provision Wi-Fi (open only in AP mode) |
 | `/api/state` | GET | yes | - | Full state JSON (below) |
-| `/api/drive` | POST | yes | `throttle`, `steering` | Drive, -255..255 |
+| `/api/drive` | POST | yes | `throttle`, `steering` | Drive, -255..255. While a button is held the UI repeats this every 300 ms as a keep-alive; the firmware coasts the motors ~1.5 s after the last drive/stop command (`DRIVE_WATCHDOG_MS` in `config.h`) |
 | `/api/stop` | POST | yes | - | Coast both motors |
 | `/api/mood` | POST | yes | `mood` | `happy` `angry` `curious` `dead` `sleepy` `wink` `idle` |
 | `/api/message` | POST | yes | `text` | Show message; empty `text` clears |

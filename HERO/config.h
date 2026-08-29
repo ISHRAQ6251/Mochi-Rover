@@ -89,5 +89,5 @@
 // ---------------------------------------------------------------------------
 #define SLEEP_TIMEOUT_MS  60000UL     // 60 s inactivity before eye sleep mode
 #define STREAM_TIMEOUT_MS 10000UL     // max time to wait for a camera frame
-#define MOTOR_STOP_DELAY_MS 300UL     // coast time after a stop command
+#define DRIVE_WATCHDOG_MS 1500UL      // stop motors if no drive/stop cmd in this window
 #define MOOD_OVERRIDE_MS  4000UL      // mood override lasts ~4 s, then idle

@@ -73,7 +73,11 @@ module GPIOs free. OLED on Wire1 (35/36) to keep the camera SCCB bus (4/5) clean
 - USER-CONFIRMED: default auth password `hero`, changeable from settings modal.
 - Settings modal has rover IP/domain + optional theme control ONLY; explicitly NO
   Wi-Fi SSID/password fields (provisioning happens only in the AP portal page).
-- Drive safety: motors stop when controls are released / on disconnect.
+- Drive safety: motors stop when controls are released / on disconnect. The
+  firmware watchdog coasts the motors ~1.5 s after the last drive/stop command
+  (`DRIVE_WATCHDOG_MS`), and the UI repeats the drive command every 300 ms while
+  a button is held, so a lost connection or closed tab can never leave the rover
+  driving itself.
 
 Behavioral defaults chosen (recorded, not asked): auth password default `hero`
 (NVS, changeable from UI); sleep expression after 60 s of no driving input
@@ -127,8 +131,14 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
 - [x] Docs restructured: README moved to repo root; comprehensive USER_MANUAL.md
       moved to repo root (parts, wiring, upload via arduino-cli/IDE/esptool,
       usage, troubleshooting); `HERO/README.md` removed.
-- [x] Verified: compiles clean (1106066 B / 84%), `node --check` passes on
+- [x] Verified: compiles clean (1106618 B / 84%), `node --check` passes on
       `web_ui/app.js`, `web_assets.h` regenerated after the UI fix.
+- [x] **Post-rename bug pass (2026-08-28)**: found and fixed the missing drive
+      watchdog. `MOTOR_STOP_DELAY_MS` was defined but unused, so nothing ever
+      stopped the motors on client disconnect despite the "stop on disconnect"
+      claim. Implemented `DRIVE_WATCHDOG_MS` (1.5 s) in `MotorControl::update()`
+      and a 300 ms drive keep-alive in `web_ui/app.js`; regenerated
+      `web_assets.h`; docs updated (USER_MANUAL, FUNCTIONALITY, README).
 
 ## In Progress
 

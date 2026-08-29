@@ -74,8 +74,8 @@ arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi HERO
 You should see:
 
 ```
-Sketch uses 1106066 bytes (84%) of program storage space.
-Global variables use 60804 bytes (18%) of dynamic memory.
+Sketch uses 1106618 bytes (84%) of program storage space.
+Global variables use 60812 bytes (18%) of dynamic memory.
 ```
 
 ### 2.5 Alternative: build with the Arduino IDE
@@ -276,6 +276,11 @@ it later in the ⚙️ settings panel.
     ▲ and ◀ together to turn while moving forward.
   - Every command is acknowledged by the rover (the OLED shows driving-reaction
     eyes).
+- **Drive safety watchdog** - while you hold a button the app re-sends the drive
+  command every 300 ms. If the connection drops, the browser tab is closed, or
+  the app is killed, the rover receives no more commands and stops the motors on
+  its own after ~1.5 s. You never need to "find" a stuck rover that is driving
+  itself.
 - **Message to OLED** - type text and tap **Send**; the message appears on the
   rover's OLED. Tap **✕** to clear it and restore the face.
 - **Mood** - dropdown with six moods: Happy, Angry, Curious, Dead, Sleepy, Wink.
@@ -337,4 +342,5 @@ password), power-cycle it. After ~10 seconds of failed connection it opens the
 | Face shows "AP:" IP | The rover is in setup mode - provision Wi-Fi from `http://192.168.4.1` |
 | Video freezes briefly, CAM dot red, then recovers | The stream drops and auto-reconnects after ~2.5 s - normal if the camera is busy capturing a photo; avoid tapping 📷 while driving |
 | Live view frozen / static frame on iPhone Safari | Older iOS Safari renders only the first MJPEG frame; use Chrome on Android or install Chrome on the iPhone |
+| Motors keep running after closing the app / phone disconnects | The firmware's drive watchdog coasts the motors ~1.5 s after the last drive command, so an unreachable app can never drive the rover on its own. Ensure you flashed the latest build (older builds lacked the watchdog) |
 | All buttons do nothing after logging in | The POST requests were not decoded by the server - make sure you flashed the current `web_assets.h` / `app.js` build (the UI must send `Content-Type: application/x-www-form-urlencoded`)

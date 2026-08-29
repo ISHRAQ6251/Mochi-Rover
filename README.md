@@ -23,6 +23,9 @@ clip capture, a flashlight toggle, six mood buttons and a message-to-OLED box.
   video clips - no SD card required.
 - **Differential drive**: hold-to-move steering/throttle pads with arcade
   throttle+steering mixing and a 0-255 speed slider.
+- **Auto-stop safety watchdog**: the rover coasts the motors ~1.5 s after the
+  last drive command, so a dropped connection or closed tab can never leave it
+  driving itself.
 - **"HERO" OLED face**: procedural animated eyes (blinks, saccades, idle
   script), six moods, driving reactions and a sleep state; plus a persistent
   message-to-OLED box.

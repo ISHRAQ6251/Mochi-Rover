@@ -24,6 +24,7 @@ void MotorControl::drive(int16_t throttle, int16_t steering) {
 
     _throttle = throttle;
     _steering = steering;
+    _lastCmdAt = millis();
 
     int16_t left = constrain(throttle + steering, -255, 255);
     int16_t right = constrain(throttle - steering, -255, 255);
@@ -59,7 +60,14 @@ void MotorControl::stop() {
     setRight(0);
     _throttle = 0;
     _steering = 0;
+    _lastCmdAt = millis();
 }
 
 void MotorControl::update() {
+    // Drive watchdog: a held button keeps a 300 ms heartbeat coming from the
+    // UI, so any longer silence means the client is gone -> coast the motors.
+    if ((_throttle != 0 || _steering != 0) &&
+        _lastCmdAt && (millis() - _lastCmdAt > DRIVE_WATCHDOG_MS)) {
+        stop();
+    }
 }
