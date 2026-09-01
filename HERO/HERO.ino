@@ -6,7 +6,7 @@
 //
 // Board: ESP32-S3-CAM "bare clone" N16R8 (16 MB flash, 8 MB PSRAM) with OV5640
 // Motors: DRV8833 (IN1=GPIO1, IN2=GPIO14, IN3=GPIO21, IN4=GPIO42)
-// OLED:   SH1106 128x64 over I2C Wire1 (SDA=GPIO40, SCL=GPIO41)
+// OLED:   SH1106 128x64 over I2C Wire (SDA=GPIO40, SCL=GPIO41)
 // Camera: OV5640, Freenove/generic clone pinout (GPIO 4-18, minus 14)
 //
 // See ../USER_MANUAL.md for wiring, build and configuration instructions.

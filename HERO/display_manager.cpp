@@ -9,35 +9,33 @@ bool DisplayManager::begin() {
     _lastActivity = millis();
     _present = false;
 
-    // Do not call Wire1.begin() here: Adafruit_SH1106G::begin() starts the
-    // bus itself. A second begin() on ESP32 3.x logs
-    // "I2C bus id(1) has already been acquired" and leaves the bus unusable.
-    Wire1.setPins(PIN_OLED_SDA, PIN_OLED_SCL);
-    if (!_display.begin(OLED_I2C_ADDR, false)) {
-        Wire1.end();
-        return false;
-    }
-
-    Wire1.setTimeOut(50);
-    Wire1.setClock(400000);
+    // OLED uses Arduino Wire = I2C port 0. The OV5640 SCCB driver (sccb-ng)
+    // installs its own master on I2C port 1. Sharing Wire1 (port 1) with the
+    // camera produced "I2C bus id(1) has already been acquired" / camera
+    // probe 0x103 and a blank display.
+    Wire.setPins(PIN_OLED_SDA, PIN_OLED_SCL);
+    Wire.begin();
+    Wire.setTimeOut(50);
 
     uint8_t addr = OLED_I2C_ADDR;
-    Wire1.beginTransmission(addr);
-    if (Wire1.endTransmission() != 0) {
+    Wire.beginTransmission(addr);
+    if (Wire.endTransmission() != 0) {
         addr = 0x3D;
-        Wire1.beginTransmission(addr);
-        if (Wire1.endTransmission() != 0) {
-            Wire1.end();
+        Wire.beginTransmission(addr);
+        if (Wire.endTransmission() != 0) {
+            Wire.end();
             return false;
         }
         Serial.printf("oled: using alt I2C addr 0x%02X\n", addr);
-        Wire1.end();
-        Wire1.setPins(PIN_OLED_SDA, PIN_OLED_SCL);
-        if (!_display.begin(addr, false)) {
-            Wire1.end();
-            return false;
-        }
     }
+
+    // Release I2C0 so Adafruit_SH1106G::begin() can acquire it once.
+    Wire.end();
+    Wire.setPins(PIN_OLED_SDA, PIN_OLED_SCL);
+    if (!_display.begin(addr, false)) {
+        return false;
+    }
+    Wire.setClock(400000);
 
     _present = true;
     _display.clearDisplay();

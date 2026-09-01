@@ -339,7 +339,7 @@ password), power-cycle it. After ~10 seconds of failed connection it opens the
 | ------- | --- |
 | Upload hangs / "no device found" | Use a **data** USB cable; put the board in download mode (BOOT + tap RST); try another USB port |
 | Blank OLED + serial only shows `ESP-ROM` / `TG1WDT_SYS_RST` | Watchdog reset: OLED must be on GPIO **40/41**, never 35/36 (those are PSRAM). Reflash, tap RST. Motors do not need to be wired. |
-| Serial shows `I2C bus id(1) has already been acquired` | Reflash this build - Wire1 was started twice; the OLED bus then stayed dead |
+| Serial shows `I2C bus id(1) has already been acquired` / `sccb init err` | Camera SCCB and the OLED must not share I2C port 1. Reflash this build (OLED on Wire / I2C0, camera on I2C1) |
 | OLED stays blank but serial prints `oled missing` | Check VCC=3.3 V, GND, SDA=40, SCL=41; some panels use I2C address 0x3D (the firmware tries both) |
 | Serial monitor empty after `HERO boot` should appear | Enable **USB CDC On Boot**; 115200 baud; tap RST after opening the monitor |
 | No image in the video panel, CAM dot red | Check the camera ribbon is seated; verify GPIO settings match your board; try reducing XCLK to 10 MHz (see camera_server.cpp) |

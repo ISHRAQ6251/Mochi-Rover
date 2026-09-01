@@ -88,6 +88,7 @@ bool CameraServer::begin() {
     cfg.pin_href = CAM_PIN_HREF;
     cfg.pin_sccb_sda = CAM_PIN_SIOD;
     cfg.pin_sccb_scl = CAM_PIN_SIOC;
+    cfg.sccb_i2c_port = 1;
     cfg.pin_pwdn = CAM_PIN_PWDN;
     cfg.pin_reset = CAM_PIN_RESET;
     cfg.xclk_freq_hz = 20000000;

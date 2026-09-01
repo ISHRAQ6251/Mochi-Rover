@@ -36,9 +36,9 @@
 #define PIN_MOTOR_R_IN3  21
 #define PIN_MOTOR_R_IN4  42
 
-// SH1106 OLED over I2C (Wire1, keep clear of the camera SCCB bus on 4/5).
-// Do NOT use GPIO 33-37: on the N16R8 those are OPI PSRAM (SPIIO4-7 / DQS).
-// Driving them as I2C corrupts PSRAM and watchdog-resets the chip (TG1WDT).
+// SH1106 OLED over I2C Wire (I2C port 0). Camera SCCB uses I2C port 1 on
+// GPIO 4/5, so the two buses must not share a port. Do NOT use GPIO 33-37:
+// on the N16R8 those are OPI PSRAM (SPIIO4-7 / DQS) and watchdog-reset the chip.
 #define PIN_OLED_SDA     40
 #define PIN_OLED_SCL     41
 

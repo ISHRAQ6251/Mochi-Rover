@@ -45,16 +45,17 @@ ESP32-S3-WROOM-1-N16R8"). Both agree on identical OV5640 wiring.
 | On-board LED | flash / status | 2 |
 | DRV8833 | IN1 / IN2 (motor A) | 1 / 14 |
 | DRV8833 | IN3 / IN4 (motor B) | 21 / 42 |
-| SH1106 OLED | SDA / SCL (Wire1, addr 0x3C) | 40 / 41 |
+| SH1106 OLED | SDA / SCL (Wire / I2C0, addr 0x3C) | 40 / 41 |
 | Reserved | USB D-/D+ (flashing/console) | 19 / 20 |
 | Reserved | UART0 TX/RX (header, debug) | 43 / 44 |
 | Reserved | BOOT button / strapping | 0 / 3 / 45 / 46 (avoid) |
 | Reserved | OPI PSRAM (do not use) | 33-37 |
 
 Camera occupies GPIO 4-18 (except 14). USB 19/20 kept for flashing. All other
-module GPIOs free. OLED on Wire1 (40/41) — GPIO 33-37 are OPI PSRAM on the
-N16R8 and must not be used as I2C (that caused TG1WDT_SYS_RST on boot). Camera
-SCCB stays on 4/5.
+module GPIOs free. OLED on Wire / I2C0 (40/41) — GPIO 33-37 are OPI PSRAM on
+the N16R8 and must not be used as I2C (that caused TG1WDT_SYS_RST on boot).
+Camera SCCB stays on GPIO 4/5 using I2C port 1; sharing Wire1 with the OLED
+stole that port and camera probe failed with 0x103.
 
 ### Architecture
 
