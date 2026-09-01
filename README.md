@@ -60,7 +60,7 @@ boot to help you spot a mismatch.
 | OV5640 SIOD / SIOC (SCCB) | 4 / 5 | camera FPC |
 | DRV8833 IN1 / IN2 (motor A) | 1 / 14 | DRV8833 AIN1/AIN2 |
 | DRV8833 IN3 / IN4 (motor B) | 21 / 42 | DRV8833 BIN1/BIN2 |
-| OLED SDA / SCL | 35 / 36 | SH1106 SDA/SCL |
+| OLED SDA / SCL | 40 / 41 | SH1106 SDA/SCL (not 35/36 — those are PSRAM) |
 | Flashlight LED | 2 | onboard LED (or external LED + resistor) |
 
 The full wiring checklist, power layout (separate motor battery!) and the

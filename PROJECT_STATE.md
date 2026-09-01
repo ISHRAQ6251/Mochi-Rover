@@ -45,13 +45,16 @@ ESP32-S3-WROOM-1-N16R8"). Both agree on identical OV5640 wiring.
 | On-board LED | flash / status | 2 |
 | DRV8833 | IN1 / IN2 (motor A) | 1 / 14 |
 | DRV8833 | IN3 / IN4 (motor B) | 21 / 42 |
-| SH1106 OLED | SDA / SCL (Wire1, addr 0x3C) | 35 / 36 |
+| SH1106 OLED | SDA / SCL (Wire1, addr 0x3C) | 40 / 41 |
 | Reserved | USB D-/D+ (flashing/console) | 19 / 20 |
 | Reserved | UART0 TX/RX (header, debug) | 43 / 44 |
 | Reserved | BOOT button / strapping | 0 / 3 / 45 / 46 (avoid) |
+| Reserved | OPI PSRAM (do not use) | 33-37 |
 
 Camera occupies GPIO 4-18 (except 14). USB 19/20 kept for flashing. All other
-module GPIOs free. OLED on Wire1 (35/36) to keep the camera SCCB bus (4/5) clean.
+module GPIOs free. OLED on Wire1 (40/41) — GPIO 33-37 are OPI PSRAM on the
+N16R8 and must not be used as I2C (that caused TG1WDT_SYS_RST on boot). Camera
+SCCB stays on 4/5.
 
 ### Architecture
 
@@ -98,7 +101,7 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
 - [x] User confirmed board = cheap bare ESP32-S3-CAM clone (not Waveshare AIoT).
 - [x] Camera OV5640 pinout locked via two independent GitHub projects
       (jzsalinas/exp-esp32s3 + sorn-AI/ESP32_WEB_Camera) — identical pinout.
-- [x] Free-GPIO map derived; motors on 1/14/21/42, OLED I2C on 35/36, LED on 2.
+- [x] Free-GPIO map derived; motors on 1/14/21/42, OLED I2C on 40/41, LED on 2.
 - [x] Built all firmware modules (config, settings, motor_control, hero_eyes
       6 moods, display_manager, wifi_helper, camera_server, web_server, web_ui,
       embed tool, main sketch).
@@ -139,6 +142,12 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
       claim. Implemented `DRIVE_WATCHDOG_MS` (1.5 s) in `MotorControl::update()`
       and a 300 ms drive keep-alive in `web_ui/app.js`; regenerated
       `web_assets.h`; docs updated (USER_MANUAL, FUNCTIONALITY, README).
+
+- [x] **Boot WDT fix (2026-09-01)**: OLED I2C moved off GPIO 35/36 (OPI PSRAM
+      SPIIO6/SPIIO7 on N16R8) to GPIO 40/41. Missing OLED is probed via I2C
+      ACK and skipped instead of hanging. `Serial.begin(115200)` plus boot
+      breadcrumbs added so the USB monitor shows sketch logs, not only the ROM
+      dump. Motors do not need to be wired for the face / web UI to run.
 
 ## In Progress
 

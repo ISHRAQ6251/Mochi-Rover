@@ -98,11 +98,18 @@ bool CameraServer::begin() {
     cfg.fb_location = CAMERA_FB_IN_PSRAM;
     cfg.grab_mode = CAMERA_GRAB_LATEST;
 
+    Serial.println("camera: init...");
+    Serial.flush();
     esp_err_t err = esp_camera_init(&cfg);
     if (err != ESP_OK) {
+        Serial.printf("camera: init failed (0x%x)\n", (unsigned)err);
         return false;
     }
     _sensor = esp_camera_sensor_get();
+    sensor_t* s = (sensor_t*)_sensor;
+    if (s) {
+        Serial.printf("camera: PID=0x%04x\n", s->id.PID);
+    }
     applySettings();
     return true;
 }

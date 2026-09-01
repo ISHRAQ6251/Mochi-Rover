@@ -11,9 +11,12 @@
 //   boot -> connection -> text(persistent) -> sleep -> mood/driving -> idle
 class DisplayManager {
 public:
-    void begin();
+    // Returns false if the SH1106 did not ACK (missing/wrong wiring).
+    // The rest of the rover still runs; update() is a no-op until present.
+    bool begin();
 
     void update(uint32_t now);   // decide screen, render, push to OLED
+    bool present() const { return _present; }
 
     // external inputs
     void setMood(HeroMood mood);
@@ -51,6 +54,7 @@ private:
 
     HeroMood _mood = HeroMood::IDLE;
     bool _sleeping = false;
+    bool _present = false;
 };
 
 extern DisplayManager displayMgr;

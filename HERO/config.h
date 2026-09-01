@@ -36,9 +36,11 @@
 #define PIN_MOTOR_R_IN3  21
 #define PIN_MOTOR_R_IN4  42
 
-// SH1106 OLED over I2C (Wire1, keep clear of the camera SCCB bus on 4/5)
-#define PIN_OLED_SDA     35
-#define PIN_OLED_SCL     36
+// SH1106 OLED over I2C (Wire1, keep clear of the camera SCCB bus on 4/5).
+// Do NOT use GPIO 33-37: on the N16R8 those are OPI PSRAM (SPIIO4-7 / DQS).
+// Driving them as I2C corrupts PSRAM and watchdog-resets the chip (TG1WDT).
+#define PIN_OLED_SDA     40
+#define PIN_OLED_SCL     41
 
 // On-board flashlight LED (high = on). On this board an LED is wired to GPIO2;
 // if your board lacks it, wire an external LED to GPIO2 through a resistor.

@@ -120,8 +120,8 @@ ESP32-S3-CAM module header pins.
 | DRV8833 **VM** | - | Motor battery **+** |
 | DRV8833 **VIN** | - | 3.3 V (logic supply) |
 | GND | - | Common ground (all boards) |
-| OLED **SDA** | 35 | SH1106 SDA |
-| OLED **SCL** | 36 | SH1106 SCL |
+| OLED **SDA** | 40 | SH1106 SDA |
+| OLED **SCL** | 41 | SH1106 SCL |
 | OLED **VCC** | - | 3.3 V |
 | OLED **GND** | - | GND |
 | Flash LED (onboard) | 2 | already wired; otherwise an external LED + resistor to GND |
@@ -137,7 +137,8 @@ ESP32-S3-CAM module header pins.
    wires reverses its direction - fix steering direction by swapping if needed.
 4. **Motor power** - battery pack to **VM** and **GND**. Connect the same GND
    rail to the ESP32 GND (a common ground is required).
-5. **OLED** - 4 wires (VCC, GND, SDA, SCL) from GPIO 35/36.
+5. **OLED** - 4 wires (VCC, GND, SDA, SCL) from GPIO 40/41. Motors and the
+   DRV8833 are not required for the face or the web UI to come up.
 6. **Driver logic supply** - DRV8833 `VIN` to 3.3 V; tie `nSLEEP` and `VMODE`
    to 3.3 V as well (enables the driver, full motor voltage).
 
@@ -152,8 +153,10 @@ ESP32-S3-CAM module header pins.
 
 ### Avoid these pins
 
-GPIO 19/20 (USB), GPIO 43/44 (UART serial debug), GPIO 0 (BOOT button), and
-strapping pins GPIO 3/45/46. The camera already occupies GPIO 4-18 (except 14).
+GPIO 19/20 (USB), GPIO 43/44 (UART serial debug), GPIO 0 (BOOT button),
+strapping pins GPIO 3/45/46, and **GPIO 33-37** (OPI PSRAM on the N16R8 —
+using 35/36 for the OLED watchdog-resets the chip). The camera already
+occupies GPIO 4-18 (except 14).
 
 ---
 
@@ -202,10 +205,14 @@ After upload, open a serial monitor to see the boot log:
 arduino-cli monitor -p /dev/ttyACM0 --config baudrate=115200
 ```
 
-You should see the rover print its camera sensor PID (e.g. `OV5640`) and which
-network mode it entered. If you instead see `ov2640` or a pin mismatch error,
-your board's camera is wired differently - check the `CAM_*` pins in
-`config.h`.
+You should see `HERO boot`, then `settings ok` / `motors ok` / `oled ok` (or
+`oled missing`), `wifi ...`, `camera ok` (or a camera error) and `HERO ready`.
+If you only ever see the ROM dump (`ESP-ROM:esp32s3-...` / `rst:0x8
+(TG1WDT_SYS_RST)`) the chip is crashing before the sketch prints — reflash with
+`FlashSize=16M,PSRAM=opi` and confirm the OLED is on GPIO 40/41, not 35/36.
+If you instead see a camera PID other than OV5640, check the `CAM_*` pins in
+`config.h`. Enable **USB CDC On Boot** in the board options so USB serial
+works after reset.
 
 ### 4.4 Alternative: upload with the Arduino IDE
 
@@ -331,6 +338,9 @@ password), power-cycle it. After ~10 seconds of failed connection it opens the
 | Symptom | Fix |
 | ------- | --- |
 | Upload hangs / "no device found" | Use a **data** USB cable; put the board in download mode (BOOT + tap RST); try another USB port |
+| Blank OLED + serial only shows `ESP-ROM` / `TG1WDT_SYS_RST` | Watchdog reset: OLED must be on GPIO **40/41**, never 35/36 (those are PSRAM). Reflash, tap RST. Motors do not need to be wired. |
+| OLED stays blank but serial prints `oled missing` | Check VCC=3.3 V, GND, SDA=40, SCL=41, I2C address 0x3C |
+| Serial monitor empty after `HERO boot` should appear | Enable **USB CDC On Boot**; 115200 baud; tap RST after opening the monitor |
 | No image in the video panel, CAM dot red | Check the camera ribbon is seated; verify GPIO settings match your board; try reducing XCLK to 10 MHz (see camera_server.cpp) |
 | Motors do not spin | Check DRV8833 power (VM/GND), `nSLEEP` tied to 3.3 V, and IN wires; try 100 on the speed slider |
 | One motor spins backwards | Swap that motor's two wires on the driver |

@@ -4,17 +4,28 @@
 
 DisplayManager displayMgr;
 
-void DisplayManager::begin() {
+bool DisplayManager::begin() {
     _bootStart = millis();
     _lastActivity = millis();
+    _present = false;
 
     Wire1.begin(PIN_OLED_SDA, PIN_OLED_SCL);
+    Wire1.setTimeOut(50);
+    Wire1.setClock(400000);
+
+    Wire1.beginTransmission(OLED_I2C_ADDR);
+    if (Wire1.endTransmission() != 0) {
+        return false;
+    }
+
     _display.begin(OLED_I2C_ADDR, false);
+    _present = true;
     _display.clearDisplay();
     _display.display();
 
     eyes.begin();
     eyes.setAnimEnabled(settings.data.oledAnim);
+    return true;
 }
 
 void DisplayManager::setMood(HeroMood mood) {
@@ -76,6 +87,7 @@ DisplayManager::Screen DisplayManager::pickScreen(uint32_t now) {
 }
 
 void DisplayManager::update(uint32_t now) {
+    if (!_present) return;
     _canvas.fillScreen(0);
     Screen next = pickScreen(now);
     if (next != _screen) {
@@ -193,6 +205,7 @@ void DisplayManager::renderFace(uint32_t now) {
 }
 
 void DisplayManager::push() {
+    if (!_present) return;
     _display.drawBitmap(0, 0, _canvas.getBuffer(), OLED_WIDTH, OLED_HEIGHT, 1);
     _display.display();
 }
