@@ -37,14 +37,13 @@ private:
     void renderConnection();
     void renderText(uint32_t now);
     void renderFace(uint32_t now);
-    void push();
 
     Adafruit_SH1106G _display{OLED_WIDTH, OLED_HEIGHT, &Wire, -1};
-    GFXcanvas1 _canvas{OLED_WIDTH, OLED_HEIGHT};
 
     Screen _screen = Screen::BOOT;
     uint32_t _bootStart = 0;
     uint32_t _lastActivity = 0;
+    uint32_t _lastPush = 0;
 
     bool _connected = false;
     bool _apMode = false;

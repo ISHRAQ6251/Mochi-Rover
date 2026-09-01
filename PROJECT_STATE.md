@@ -144,7 +144,12 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
       and a 300 ms drive keep-alive in `web_ui/app.js`; regenerated
       `web_assets.h`; docs updated (USER_MANUAL, FUNCTIONALITY, README).
 
-- [x] **Boot WDT fix (2026-09-01)**: OLED I2C moved off GPIO 35/36 (OPI PSRAM
+- [x] **OLED garbage fix (2026-09-01)**: `drawBitmap()` onto the SH1106 only
+      OR'd white pixels and never cleared the panel RAM, so frames smeared into
+      unreadable garbage on the 128x64. Draw directly into the SH1106 buffer,
+      `clearDisplay()` each frame, cap refresh at ~25 Hz.
+
+- [x] **Boot WDT fix (2026-09-01)**: OLED I2C moved off GPIO 35/36 (OPI PSRAM)
       SPIIO6/SPIIO7 on N16R8) to GPIO 40/41. Missing OLED is probed via I2C
       ACK and skipped instead of hanging. `Serial.begin(115200)` plus boot
       breadcrumbs added so the USB monitor shows sketch logs, not only the ROM

@@ -38,8 +38,9 @@ bool DisplayManager::begin() {
     Wire.setClock(400000);
 
     _present = true;
-    _display.clearDisplay();
+    _display.setRotation(0);
     _display.setContrast(0x7F);
+    _display.clearDisplay();
     _display.display();
 
     eyes.begin();
@@ -107,56 +108,57 @@ DisplayManager::Screen DisplayManager::pickScreen(uint32_t now) {
 
 void DisplayManager::update(uint32_t now) {
     if (!_present) return;
-    _canvas.fillScreen(0);
+    if (now - _lastPush < 40) return;
+    _lastPush = now;
+
     Screen next = pickScreen(now);
     if (next != _screen) {
         _screen = next;
     }
+    _display.clearDisplay();
     switch (_screen) {
         case Screen::BOOT:       renderBoot(); break;
         case Screen::CONNECTION: renderConnection(); break;
         case Screen::TEXT:       renderText(now); break;
         case Screen::FACE:       renderFace(now); break;
     }
-    push();
+    _display.display();
 }
 
 void DisplayManager::renderBoot() {
-    _canvas.setTextColor(1);
-    _canvas.setTextSize(1);
-    _canvas.setCursor(22, 20);
-    _canvas.print("HERO");
-    _canvas.setCursor(30, 34);
-    _canvas.print("Booting...");
+    _display.setTextColor(SH110X_WHITE);
+    _display.setTextSize(1);
+    _display.setCursor(22, 20);
+    _display.print("HERO");
+    _display.setCursor(30, 34);
+    _display.print("Booting...");
 
-    // little animated progress bar
     int w = 80;
     int p = ((millis() - _bootStart) % 1200) * w / 1200;
-    _canvas.drawRect(24, 46, w + 2, 6, 1);
-    if (p > 0) _canvas.fillRect(25, 47, p, 4, 1);
+    _display.drawRect(24, 46, w + 2, 6, SH110X_WHITE);
+    if (p > 0) _display.fillRect(25, 47, p, 4, SH110X_WHITE);
 }
 
 void DisplayManager::renderConnection() {
-    _canvas.setTextColor(1);
-    _canvas.setTextSize(1);
-    _canvas.setCursor(22, 8);
-    _canvas.print("Wi-Fi Setup");
+    _display.setTextColor(SH110X_WHITE);
+    _display.setTextSize(1);
+    _display.setCursor(22, 8);
+    _display.print("Wi-Fi Setup");
 
-    _canvas.setCursor(8, 22);
+    _display.setCursor(8, 22);
     if (_apMode) {
-        _canvas.print("AP: 192.168.4.1");
+        _display.print("AP: 192.168.4.1");
     } else {
-        _canvas.print("Connecting...");
+        _display.print("Connecting...");
     }
 
-    _canvas.setCursor(8, 36);
-    _canvas.print("Open browser to");
-    _canvas.setCursor(8, 48);
-    _canvas.print("set network + mood.");
+    _display.setCursor(8, 36);
+    _display.print("Open browser to");
+    _display.setCursor(8, 48);
+    _display.print("set network + mood.");
 
-    // blinking dot
     if ((millis() / 500) % 2) {
-        _canvas.fillCircle(116, 8, 3, 1);
+        _display.fillCircle(116, 8, 3, SH110X_WHITE);
     }
 }
 
@@ -195,36 +197,30 @@ static int wrapLines(const char* msg, char lines[3][20]) {
 void DisplayManager::renderText(uint32_t now) {
     // compact eyes stay animated (idle script, moods, driving reactions)
     eyes.update(now);
-    eyes.render(_canvas, now);
+    eyes.render(_display, now);
 
     // persistent rounded-corner text box
     const int16_t bx = 6;
     const int16_t by = 30;
     const int16_t bw = OLED_WIDTH - 12;
     const int16_t bh = 33;
-    _canvas.fillRoundRect(bx, by, bw, bh, 6, 1);
-    _canvas.drawRoundRect(bx, by, bw, bh, 6, 0);
+    _display.fillRoundRect(bx, by, bw, bh, 6, SH110X_WHITE);
+    _display.drawRoundRect(bx, by, bw, bh, 6, SH110X_BLACK);
 
     char lines[3][20];
     int n = wrapLines(_message, lines);
-    _canvas.setTextColor(0);
-    _canvas.setTextSize(1);
+    _display.setTextColor(SH110X_BLACK);
+    _display.setTextSize(1);
     int ty = by + (bh - n * 8) / 2 + 1;
     for (int i = 0; i < n; i++) {
         int x = (OLED_WIDTH - (int)strlen(lines[i]) * 6) / 2;
-        _canvas.setCursor(x, ty);
-        _canvas.print(lines[i]);
+        _display.setCursor(x, ty);
+        _display.print(lines[i]);
         ty += 8;
     }
 }
 
 void DisplayManager::renderFace(uint32_t now) {
     eyes.update(now);
-    eyes.render(_canvas, now);
-}
-
-void DisplayManager::push() {
-    if (!_present) return;
-    _display.drawBitmap(0, 0, _canvas.getBuffer(), OLED_WIDTH, OLED_HEIGHT, 1);
-    _display.display();
+    eyes.render(_display, now);
 }
