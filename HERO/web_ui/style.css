@@ -361,6 +361,16 @@ svg {
   padding: 0;
 }
 .modal-actions button { width: 100%; padding: 12px; font-weight: 700; margin-top: 14px; }
+.settings-hint { font-size: 0.82rem; margin: 0 0 8px; text-align: left; }
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+.toggle-row input { width: auto; accent-color: var(--accent); }
 
 @media (min-width: 700px) {
   .modal-card { border-radius: var(--radius); margin-bottom: 24px; }

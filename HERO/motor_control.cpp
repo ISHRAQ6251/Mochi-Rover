@@ -1,5 +1,6 @@
 #include "motor_control.h"
 #include "config.h"
+#include "settings.h"
 
 MotorControl motors;
 
@@ -34,10 +35,12 @@ void MotorControl::drive(int16_t throttle, int16_t steering) {
 }
 
 void MotorControl::setLeft(int16_t speed) {
+    if (settings.data.reverseLeft) speed = -speed;
     setPin(PIN_MOTOR_L_IN1, PIN_MOTOR_L_IN2, speed);
 }
 
 void MotorControl::setRight(int16_t speed) {
+    if (settings.data.reverseRight) speed = -speed;
     setPin(PIN_MOTOR_R_IN3, PIN_MOTOR_R_IN4, speed);
 }
 

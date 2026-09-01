@@ -33,10 +33,10 @@ moods, driving and messages.
   (look-around, surprise, suspicious squint, doze-off, occasional wink), a
   wide-eyed "whoa" kick on drive start, driving-reaction eyes, and a Zzz sleep
   state after 60 s without input.
-- Network: STA-first; falls back to a SoftAP configuration portal
-  (`HERO` / `hero1234`) with captive DNS; mDNS hostname `hero`.
+- Network: always SoftAP `HERO` / `hero1234` at `192.168.4.1` (captive DNS +
+  mDNS hostname `hero`). No station-mode / lab-router provisioning.
 - Auth: token-gated control API (default token `hero`, changeable in Settings).
-  Streaming and the provisioning endpoint in AP mode are intentionally open.
+  Streaming is open so the live view can start before unlock.
 
 ## Web UI
 
@@ -50,50 +50,48 @@ Smartphone-first dark UI with a light theme option (saved in the browser):
 - Bottom card: "Message to OLED..." input with inline Send (+ ✕ to clear), a
   Mood dropdown, and a Speed slider with a live value.
 - Mood popup: a white rounded card under the header with the six moods.
-- Settings modal "Rover Connection & Settings": Rover IP / Domain field
-  (default `192.168.4.1`), theme selector, and an optional new access token.
-  It intentionally has no Wi-Fi SSID/password fields; first-time provisioning
-  happens on the separate setup page shown while the rover is in AP mode.
+- Settings modal: hotspot reminder, theme, reverse-left / reverse-right motor
+  toggles (persisted in NVS), optional new access token.
 
 ## API
 
-All control endpoints (except `/api/info`, `/api/auth`, `/api/wifi` in AP mode,
-`/stream` and `/capture`) require the token either as an `X-Auth-Token` header
-or a `?token=` query parameter.
+All control endpoints (except `/api/info`, `/api/auth`, `/stream` and
+`/capture`) require the token either as an `X-Auth-Token` header or a
+`?token=` query parameter.
 
 | Endpoint | Method | Auth | Body params | Description |
 | -------- | ------ | ---- | ----------- | ----------- |
 | `/` `/style.css` `/app.js` | GET | - | - | Static UI |
 | `/stream` | GET | - | - | MJPEG multipart stream |
-| `/capture` | GET | - | - | High-res JPEG snapshot |
-| `/api/info` | GET | - | - | `apMode`, `connected`, `haveSaved`, `ip`, `hostname` |
+| `/capture` | GET | - | - | JPEG snapshot at stream resolution |
+| `/api/info` | GET | - | - | `apMode`, `connected`, `ip`, `hostname` |
 | `/api/auth` | POST | - | `token` | Verify token |
-| `/api/wifi` | POST | AP only | `ssid`, `pass` | Provision Wi-Fi (open only in AP mode) |
 | `/api/state` | GET | yes | - | Full state JSON (below) |
 | `/api/drive` | POST | yes | `throttle`, `steering` | Drive, -255..255. While a button is held the UI repeats this every 300 ms as a keep-alive; the firmware coasts the motors ~1.5 s after the last drive/stop command (`DRIVE_WATCHDOG_MS` in `config.h`) |
 | `/api/stop` | POST | yes | - | Coast both motors |
 | `/api/mood` | POST | yes | `mood` | `happy` `angry` `curious` `dead` `sleepy` `wink` `idle` |
 | `/api/message` | POST | yes | `text` | Show message; empty `text` clears |
 | `/api/flash` | POST | yes | `on` | 0/1 flashlight |
-| `/api/settings` | POST | yes | `oledAnim` | 0/1 eyes animation |
+| `/api/settings` | POST | yes | `oledAnim`, `reverseLeft`, `reverseRight` | 0/1 eyes animation and per-motor reverse |
 | `/api/camera` | POST | yes | `flip` | 0/1 mirror+vflip image |
 | `/api/token` | POST | yes | `token` | Change access token (min 4 chars) |
 
 `/api/state` returns: `throttle`, `steering`, `mood`, `sleeping`,
 `flashlightOn`, `oledAnim`, `camResolution`, `camQuality`, `camFlip`,
-`connected`, `apMode`, `ip`, `messageActive`, `message`.
+`reverseLeft`, `reverseRight`, `connected`, `apMode`, `ip`,
+`messageActive`, `message`.
 
 ## OLED state machine
 
 Screen priority (highest first):
 
 ```
-BOOT (1.5 s) -> CONNECTION (until Wi-Fi is up) -> TEXT (persistent message)
+BOOT (1.5 s) -> CONNECTION (~6.5 s AP details) -> TEXT (persistent message)
             -> sleep (Zzz) -> mood / driving / idle face
 ```
 
 - **BOOT**: "HERO / Booting..." with an animated progress bar.
-- **CONNECTION**: shows `AP: 192.168.4.1` in setup mode, or "Connecting...".
+- **CONNECTION**: `Join HERO AP`, `AP: 192.168.4.1`, password and token.
 - **TEXT**: compact eyes on top + a rounded text box with the wrapped message
   (up to 3 lines, ellipsized). The message persists until cleared; the ✕
   restores the full-size face and resets the sleep timer.
@@ -125,5 +123,4 @@ start and gaze in the steering direction.
   viewer can cause glitches on the first; fine for a single controller phone.
 - `/capture` grabs a JPEG at the current stream size. Taking a photo still
   briefly interrupts the live MJPEG for other clients.
-- If the saved Wi-Fi network is unreachable, power-cycle the rover to re-enter
-  the configuration AP mode.
+- The rover is AP-only; the phone has no internet while joined to **HERO**.

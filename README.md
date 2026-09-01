@@ -19,8 +19,8 @@ clip capture, a flashlight toggle, six mood buttons and a message-to-OLED box.
 
 - **Live MJPEG video** streamed to the phone (SVGA 800x600 default, PSRAM
   frame buffers, low-latency grab mode).
-- **Photo & clip capture**: high-res stills (1600x1200) and client-side WebM
-  video clips - no SD card required.
+- **Photo & clip capture**: stills at the live stream size (SVGA default) and
+  client-side WebM clips - no SD card required.
 - **Differential drive**: hold-to-move steering/throttle pads with arcade
   throttle+steering mixing and a 0-255 speed slider.
 - **Auto-stop safety watchdog**: the rover coasts the motors ~1.5 s after the
@@ -31,9 +31,8 @@ clip capture, a flashlight toggle, six mood buttons and a message-to-OLED box.
   message-to-OLED box.
 - **Flashlight** toggle on the onboard LED.
 - **Access-token auth** (default `hero`), changeable from the settings panel.
-- **Self-configuring Wi-Fi**: STA-first, automatic SoftAP configuration portal
-  (`HERO` / `hero1234`) for first-time setup, mDNS as
-  `http://hero.local`.
+- **Own hotspot**: always SoftAP `HERO` / `hero1234`. Phone joins it and opens
+  `http://192.168.4.1`. No lab router, no provisioning.
 
 ## Hardware
 
@@ -100,17 +99,14 @@ handling and troubleshooting are in the [User Manual](USER_MANUAL.md).
 
 ## Quick usage
 
-1. Power the rover. With no saved network it starts a SoftAP named
-   **HERO** (password `hero1234`).
-2. Join that network, open `http://192.168.4.1`, enter your lab Wi-Fi SSID and
-   password, tap **Connect**, then join your lab Wi-Fi again.
-3. Open `http://hero.local` and unlock with the access token (default
-   **`hero`**).
-4. Drive with the d-pad, adjust speed, change the mood,
-   capture from the video panel, and send messages to the OLED.
+1. Power the rover. It starts a Wi-Fi hotspot named **HERO** (password
+   **`hero1234`**).
+2. Join that network on your phone and open `http://192.168.4.1`.
+3. Unlock with the access token (default **`hero`**).
+4. Drive with the d-pad, adjust speed, reverse a motor in Settings if it
+   spins the wrong way, capture from the video panel, send OLED messages.
 
-Power-cycling the rover returns it to setup mode if it cannot reach the saved
-network. See the [User Manual](USER_MANUAL.md) for the full cockpit tour.
+See the [User Manual](USER_MANUAL.md) for the full cockpit tour.
 
 ## Project proposal
 
@@ -131,7 +127,7 @@ HERO/               Arduino sketch
   motor_control.h/.cpp    DRV8833 PWM driver
   hero_eyes.h/.cpp       procedural animated OLED face (6 moods)
   display_manager.h/.cpp  OLED state machine + screens
-  wifi_helper.h/.cpp      STA-first, AP config portal, mDNS
+  wifi_helper.h/.cpp      SoftAP HERO hotspot + captive DNS + mDNS
   camera_server.h/.cpp    OV5640 MJPEG stream + snapshot
   web_server.h/.cpp       REST API + static asset server
   web_ui/                 browser UI (index.html, style.css, app.js)

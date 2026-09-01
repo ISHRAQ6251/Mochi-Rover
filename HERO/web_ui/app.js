@@ -41,11 +41,6 @@ applyTheme(localStorage.getItem("hero_theme") || "dark");
 
 /* ---------------- boot flow ---------------- */
 async function boot() {
-  const info = await api("/api/info");
-  if (info.ok && info.data.apMode) {
-    $("setupGate").classList.remove("hidden");
-    return;
-  }
   if (!state.token) {
     $("authGate").classList.remove("hidden");
     return;
@@ -58,36 +53,6 @@ async function boot() {
     $("authGate").classList.remove("hidden");
   }
 }
-
-/* ---------------- provisioning ---------------- */
-$("setupSave").addEventListener("click", async () => {
-  const ssid = $("setupSsid").value.trim();
-  const pass = $("setupPass").value;
-  if (!ssid) { $("setupMsg").textContent = "Enter a Wi-Fi SSID."; return; }
-  $("setupMsg").textContent = "Connecting, please wait...";
-  const r = await api("/api/wifi", { ssid, pass });
-  if (!r.ok) { $("setupMsg").textContent = "Failed to save. Try again."; return; }
-  const t0 = Date.now();
-  const poll = setInterval(async () => {
-    const info = await api("/api/info");
-    if (!info.ok) {
-      // The rover switched to station mode and its setup AP disappeared, so
-      // this phone can no longer reach it. Guide the user to the next step.
-      clearInterval(poll);
-      $("setupMsg").textContent =
-        'Wi-Fi saved! Join "' + ssid + '" on this phone, then open http://hero.local (token: hero)';
-      return;
-    }
-    if (info.ok && info.data.connected && !info.data.apMode) {
-      clearInterval(poll);
-      $("setupMsg").textContent = "Connected! Loading cockpit...";
-      setTimeout(() => location.reload(), 800);
-    } else if (Date.now() - t0 > 30000) {
-      clearInterval(poll);
-      $("setupMsg").textContent = "Timed out. Check the credentials and try again.";
-    }
-  }, 1500);
-});
 
 /* ---------------- auth ---------------- */
 async function unlock() {
@@ -353,8 +318,9 @@ $("flashBtn").addEventListener("click", () => setFlashlight(!state.flashlight));
 
 /* ---------------- settings modal ---------------- */
 function openSettings() {
-  $("setIp").value = state.ip || "192.168.4.1";
   $("setTheme").value = localStorage.getItem("hero_theme") || "dark";
+  $("revLeft").checked = !!state.reverseLeft;
+  $("revRight").checked = !!state.reverseRight;
   $("setToken").value = "";
   $("settingsMsg").textContent = "";
   $("settingsModal").classList.remove("hidden");
@@ -367,6 +333,17 @@ $("settingsSave").addEventListener("click", async () => {
   const theme = $("setTheme").value;
   localStorage.setItem("hero_theme", theme);
   applyTheme(theme);
+
+  const revL = $("revLeft").checked;
+  const revR = $("revRight").checked;
+  const mot = await api("/api/settings", {
+    reverseLeft: revL ? 1 : 0,
+    reverseRight: revR ? 1 : 0,
+  });
+  if (mot.ok) {
+    state.reverseLeft = revL;
+    state.reverseRight = revR;
+  }
 
   const newToken = $("setToken").value.trim();
   if (newToken) {
@@ -403,8 +380,10 @@ async function pollState() {
   state.messageActive = !!s.messageActive;
   updateMsgState(state.messageActive);
   $("flashBtn").classList.toggle("on", s.flashlightOn);
-  $("dotCtrl").classList.toggle("on", !!s.connected || !!s.apMode);
+  $("dotCtrl").classList.toggle("on", true);
   $("dotCam").classList.toggle("on", state.camLive);
+  if (typeof s.reverseLeft === "boolean") state.reverseLeft = s.reverseLeft;
+  if (typeof s.reverseRight === "boolean") state.reverseRight = s.reverseRight;
   if (s.mood && s.mood !== state.mood) {
     state.mood = s.mood;
     $("moodSelect").value = s.mood;
@@ -417,6 +396,8 @@ function initCockpit(data) {
   state.flashlight = !!data.flashlightOn;
   state.flip = !!data.camFlip;
   state.mood = data.mood || "idle";
+  state.reverseLeft = !!data.reverseLeft;
+  state.reverseRight = !!data.reverseRight;
   $("moodSelect").value = state.mood;
   updateMsgState(!!data.messageActive);
   $("flashBtn").classList.toggle("on", state.flashlight);

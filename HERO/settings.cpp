@@ -12,8 +12,6 @@ void Settings::begin() {
 }
 
 void Settings::load() {
-    readString(NVS_KEY_SSID, data.wifiSSID, sizeof(data.wifiSSID), "");
-    readString(NVS_KEY_PASS, data.wifiPass, sizeof(data.wifiPass), "");
     readString(NVS_KEY_TOKEN, data.authToken, sizeof(data.authToken), AUTH_DEFAULT_TOKEN);
 
     data.camResolution = prefs.getInt(NVS_KEY_RES, data.camResolution);
@@ -21,17 +19,19 @@ void Settings::load() {
     data.camFlip      = prefs.getBool(NVS_KEY_FLIP, data.camFlip);
     data.flashlightOn = prefs.getBool(NVS_KEY_FLASH, data.flashlightOn);
     data.oledAnim     = prefs.getBool(NVS_KEY_OLEDANIM, data.oledAnim);
+    data.reverseLeft  = prefs.getBool(NVS_KEY_REV_L, data.reverseLeft);
+    data.reverseRight = prefs.getBool(NVS_KEY_REV_R, data.reverseRight);
 }
 
 void Settings::save() {
-    writeString(NVS_KEY_SSID, data.wifiSSID);
-    writeString(NVS_KEY_PASS, data.wifiPass);
     writeString(NVS_KEY_TOKEN, data.authToken);
     prefs.putInt(NVS_KEY_RES, data.camResolution);
     prefs.putInt(NVS_KEY_QUALITY, data.camQuality);
     prefs.putBool(NVS_KEY_FLIP, data.camFlip);
     prefs.putBool(NVS_KEY_FLASH, data.flashlightOn);
     prefs.putBool(NVS_KEY_OLEDANIM, data.oledAnim);
+    prefs.putBool(NVS_KEY_REV_L, data.reverseLeft);
+    prefs.putBool(NVS_KEY_REV_R, data.reverseRight);
     prefs.end();
     prefs.begin(NVS_NAMESPACE, false);
 }
@@ -45,16 +45,10 @@ void Settings::reset() {
     save();
 }
 
-void Settings::setWifi(const char* ssid, const char* pass) {
-    strncpy(data.wifiSSID, ssid, sizeof(data.wifiSSID) - 1);
-    data.wifiSSID[sizeof(data.wifiSSID) - 1] = 0;
-    strncpy(data.wifiPass, pass, sizeof(data.wifiPass) - 1);
-    data.wifiPass[sizeof(data.wifiPass) - 1] = 0;
+void Settings::setMotorReverse(bool left, bool right) {
+    data.reverseLeft = left;
+    data.reverseRight = right;
     save();
-}
-
-bool Settings::hasWifi() const {
-    return strlen(data.wifiSSID) > 0;
 }
 
 void Settings::setToken(const char* token) {

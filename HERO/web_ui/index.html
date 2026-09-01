@@ -9,20 +9,6 @@
 </head>
 <body>
 
-  <div id="setupGate" class="gate hidden">
-    <div class="gate-card">
-      <div class="logo-mark">H</div>
-      <h1>HERO</h1>
-      <p class="muted">The rover is in setup mode. Enter your Wi-Fi network so it can connect.</p>
-      <label>Wi-Fi SSID</label>
-      <input id="setupSsid" autocomplete="off" spellcheck="false">
-      <label>Password</label>
-      <input id="setupPass" type="password" autocomplete="off">
-      <button id="setupSave" class="primary">Connect</button>
-      <div id="setupMsg" class="err"></div>
-    </div>
-  </div>
-
   <div id="authGate" class="gate hidden">
     <div class="gate-card">
       <div class="logo-mark">H</div>
@@ -129,18 +115,20 @@
   <div id="settingsModal" class="modal hidden">
     <div class="modal-card">
       <div class="modal-head">
-        <h2>Rover Connection &amp; Settings</h2>
+        <h2>Settings</h2>
         <button id="settingsClose" class="icon" title="Close" aria-label="Close">
           <svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg>
         </button>
       </div>
-      <label>Rover IP / Domain</label>
-      <input id="setIp" placeholder="192.168.4.1" spellcheck="false">
+      <p class="muted settings-hint">Join Wi-Fi <strong>HERO</strong> (password <strong>hero1234</strong>) then open <strong>http://192.168.4.1</strong></p>
       <label>Theme</label>
       <select id="setTheme">
         <option value="dark">Dark</option>
         <option value="light">Light</option>
       </select>
+      <label>Motors</label>
+      <label class="toggle-row"><input id="revLeft" type="checkbox"> Reverse left motor</label>
+      <label class="toggle-row"><input id="revRight" type="checkbox"> Reverse right motor</label>
       <label>Access token</label>
       <input id="setToken" type="password" placeholder="new token (optional)" autocomplete="off">
       <div class="modal-actions">

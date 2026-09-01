@@ -71,12 +71,10 @@ stole that port and camera probe failed with 0x103.
 - OLED face drawn procedurally with Adafruit_GFX + SH1106 I2C (no bitmaps).
 - USER-CONFIRMED: captures go to the browser (stills via /capture at the live
   stream size, clips recorded client-side via MediaRecorder); no SD dependency.
-- USER-CONFIRMED: AP config portal for Wi-Fi provisioning (no network saved ->
-  rover becomes hotspot; UI enters SSID/pass stored in NVS), captive DNS, mDNS
-  hostname `hero`.
+- USER-CONFIRMED (2026-09-01): AP-only. Always SoftAP `HERO` / `hero1234` at
+  192.168.4.1. No station-mode / lab-router provisioning.
 - USER-CONFIRMED: default auth password `hero`, changeable from settings modal.
-- Settings modal has rover IP/domain + optional theme control ONLY; explicitly NO
-  Wi-Fi SSID/password fields (provisioning happens only in the AP portal page).
+- Settings: theme, reverse-left / reverse-right motor (NVS), optional new token.
 - Drive safety: motors stop when controls are released / on disconnect. The
   firmware watchdog coasts the motors ~1.5 s after the last drive/stop command
   (`DRIVE_WATCHDOG_MS`), and the UI repeats the drive command every 300 ms while
@@ -143,6 +141,10 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
       claim. Implemented `DRIVE_WATCHDOG_MS` (1.5 s) in `MotorControl::update()`
       and a 300 ms drive keep-alive in `web_ui/app.js`; regenerated
       `web_assets.h`; docs updated (USER_MANUAL, FUNCTIONALITY, README).
+
+- [x] **AP-only + motor reverse (2026-09-01)**: dropped STA/provisioning; the
+      rover always advertises SoftAP HERO. Settings can reverse each motor
+      independently (NVS `rev_left` / `rev_right`).
 
 - [x] **Cockpit UI pass (2026-09-01)**: CAM lamp now tracks the MJPEG
       connection (onload only fired on the first frame, so the dot went red

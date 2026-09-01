@@ -76,8 +76,6 @@
 // NVS
 // ---------------------------------------------------------------------------
 #define NVS_NAMESPACE     "hero"
-#define NVS_KEY_SSID      "wifi_ssid"
-#define NVS_KEY_PASS      "wifi_pass"
 #define NVS_KEY_TOKEN     "auth_token"
 #define NVS_KEY_RES       "cam_res"
 #define NVS_KEY_QUALITY   "cam_quality"
@@ -85,6 +83,8 @@
 #define NVS_KEY_FLIP      "cam_flip"
 #define NVS_KEY_FLASH     "flash_on"
 #define NVS_KEY_OLEDANIM  "oled_anim"
+#define NVS_KEY_REV_L     "rev_left"
+#define NVS_KEY_REV_R     "rev_right"
 
 // ---------------------------------------------------------------------------
 // Behavioural timings

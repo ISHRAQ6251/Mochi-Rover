@@ -242,31 +242,23 @@ or let the IDE/arduino-cli handle offsets.
 
 ## 5. Using the rover
 
-### 5.1 First-time Wi-Fi setup
+### 5.1 Connect to the rover
 
-The rover has no network saved on first boot, so it opens its own Wi-Fi network
-(called a SoftAP):
+The rover is its own Wi-Fi hotspot. No lab router, no SSID/password setup.
 
 1. Power the rover.
-2. On your phone, join the Wi-Fi network **`HERO`** (password
-   **`hero1234`**). A captive-portal login window may pop up automatically.
-3. Open `http://192.168.4.1` in a browser.
-4. Enter your lab Wi-Fi name (SSID) and password, then tap **Save / Connect**.
-5. The rover switches to your network. Back on your phone, join the **lab
-   Wi-Fi** again.
+2. On your phone, join the Wi-Fi network **`HERO`** (password **`hero1234`**).
+   A captive-portal window may open by itself.
+3. Open `http://192.168.4.1` in a browser (or wait for the captive page).
+4. Unlock with the access token (default **`hero`**).
 
-The rover remembers these credentials, so you only do this once.
+Stay on the HERO network while you drive. Your phone will not have internet
+until you leave that hotspot.
 
 ### 5.2 Opening the control page
 
-On the lab Wi-Fi, open one of these on your phone:
-
-- `http://hero.local` (mDNS - works on most phones)
-- `http://<rover-ip>` where `<rover-ip>` is the address shown on the rover's
-  status screen (or shown in the OLED CONNECTION screen / on the AP page).
-
-You will be asked for the **access token** - the default is **`hero`**. Change
-it later in the settings panel.
+While joined to **HERO**, open `http://192.168.4.1`. The OLED also shows that
+address plus the hotspot password. Change the access token later in Settings.
 
 ### 5.3 The control page (cockpit)
 
@@ -294,8 +286,7 @@ it later in the settings panel.
 ### 5.4 What the OLED shows
 
 - **Boot screen** - "HERO / Booting..." with a progress bar.
-- **Connection screen** - the rover's IP address, or `AP: 192.168.4.1` in setup
-  mode.
+- **Connection screen** - `AP: 192.168.4.1` and the hotspot password.
 - **The face** - the little robot with animated blinking eyes and idle
   behaviour. While sleeping it shows closed eyes with floating "Zzz".
 - **Message box** - when you send a message it replaces the big face; the eyes
@@ -314,18 +305,16 @@ it later in the settings panel.
 
 ### 5.6 Settings
 
-- **Rover IP / Domain** - the address the app talks to; useful if you use a
-  fixed IP.
 - **Theme** - dark / light.
+- **Reverse left / right motor** - flip a channel in software if a motor
+  (or the whole rover) drives the wrong way. Saved on the rover.
 - **Change access token** - pick a new login password (min 4 characters). Write
   it down - it is stored on the rover.
 
-### 5.7 Returning to setup mode
+### 5.7 Hotspot reminder
 
-If the rover cannot reach the saved Wi-Fi (new lab, router restarted, wrong
-password), power-cycle it. After ~10 seconds of failed connection it opens the
-`HERO` setup network again and you can re-provision it from
-`http://192.168.4.1`.
+The rover always advertises **HERO**. If you cannot see it, power-cycle the
+board and wait a few seconds, then scan for Wi-Fi again.
 
 ---
 
@@ -341,13 +330,12 @@ password), power-cycle it. After ~10 seconds of failed connection it opens the
 | Serial monitor empty after `HERO boot` should appear | Enable **USB CDC On Boot**; 115200 baud; tap RST after opening the monitor |
 | No image in the video panel, CAM dot red | Check the camera ribbon is seated; verify GPIO settings match your board; try reducing XCLK to 10 MHz (see camera_server.cpp) |
 | Motors do not spin | Check DRV8833 power (VM/GND), `nSLEEP` tied to 3.3 V, and IN wires; try 100 on the speed slider |
-| One motor spins backwards | Swap that motor's two wires on the driver |
-| Motors spin but the rover turns wrong way | Swap the left/right motor channels (AO/BO) |
-| Can't find `hero.local` | Use the rover's IP instead (shown on the OLED connection screen); mDNS needs your phone to be on the same network |
-| Rover keeps entering setup mode | Wi-Fi password changed or wrong SSID - re-provision from the `HERO` AP |
+| One motor spins backwards | Settings > Reverse left/right motor (or swap that motor's two wires) |
+| Motors spin but the rover turns wrong way | Reverse both motors in Settings, or swap left/right channels (AO/BO) |
+| Can't find the rover Wi-Fi | Stay near the board, wait ~10 s after power-on, join **HERO** / **hero1234** |
 | Lost the access token | Reflash the firmware to restore the default token `hero` |
 | Flickering / purple video | Lower camera XCLK from 20 MHz to 10 MHz in `camera_server.cpp` |
-| Face shows "AP:" IP | The rover is in setup mode - provision Wi-Fi from `http://192.168.4.1` |
+| Face shows "AP: 192.168.4.1" | Normal - join **HERO** and open that address |
 | Video freezes briefly, CAM dot red, then recovers | The stream drops and auto-reconnects after ~2.5 s - normal if the camera is busy capturing a photo; avoid tapping photo while driving |
 | Live view frozen / static frame on iPhone Safari | Older iOS Safari renders only the first MJPEG frame; use Chrome on Android or install Chrome on the iPhone |
 | CAM dot turns red while the picture is still moving | Reflash this build - the CAM lamp now stays green for the life of the MJPEG connection, not just the first frame |

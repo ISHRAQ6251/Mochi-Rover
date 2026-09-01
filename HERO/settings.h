@@ -3,8 +3,6 @@
 #include <Arduino.h>
 
 struct RoverSettings {
-    char wifiSSID[33] = {0};
-    char wifiPass[65] = {0};
     char authToken[33] = {0};
 
     int camResolution = 9;    // framesize_t: 9 = FRAMESIZE_SVGA (800x600)
@@ -13,6 +11,8 @@ struct RoverSettings {
 
     bool flashlightOn = false;
     bool oledAnim = true;
+    bool reverseLeft = false;
+    bool reverseRight = false;
 };
 
 class Settings {
@@ -25,13 +25,12 @@ public:
     RoverSettings data;
 
     // convenience accessors used by the rest of the firmware
-    void setWifi(const char* ssid, const char* pass);
-    bool hasWifi() const;
     void setToken(const char* token);
     void setCamera(int resolution, int quality);
     void setCamFlip(bool flip);
     void setFlashlight(bool on);
     void setOledAnim(bool on);
+    void setMotorReverse(bool left, bool right);
 
 private:
     void writeString(const char* key, const char* value);

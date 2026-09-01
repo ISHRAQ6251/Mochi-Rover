@@ -90,7 +90,7 @@ DisplayManager::Screen DisplayManager::pickScreen(uint32_t now) {
     if (now - _bootStart < 1500) {
         return Screen::BOOT;
     }
-    if (!_connected) {
+    if (now - _bootStart < 8000) {
         return Screen::CONNECTION;
     }
     if (_message[0] != 0) {
@@ -143,19 +143,15 @@ void DisplayManager::renderConnection() {
     _display.setTextColor(SH110X_WHITE);
     _display.setTextSize(1);
     _display.setCursor(22, 8);
-    _display.print("Wi-Fi Setup");
+    _display.print("Join HERO AP");
 
     _display.setCursor(8, 22);
-    if (_apMode) {
-        _display.print("AP: 192.168.4.1");
-    } else {
-        _display.print("Connecting...");
-    }
+    _display.print("AP: 192.168.4.1");
 
     _display.setCursor(8, 36);
-    _display.print("Open browser to");
+    _display.print("Pass: hero1234");
     _display.setCursor(8, 48);
-    _display.print("set network + mood.");
+    _display.print("token: hero");
 
     if ((millis() / 500) % 2) {
         _display.fillCircle(116, 8, 3, SH110X_WHITE);

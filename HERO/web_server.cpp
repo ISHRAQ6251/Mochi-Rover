@@ -60,8 +60,10 @@ static String stateJson() {
     s += "\"camResolution\":" + String(settings.data.camResolution) + ",";
     s += "\"camQuality\":" + String(settings.data.camQuality) + ",";
     s += "\"camFlip\":" + String(settings.data.camFlip ? "true" : "false") + ",";
-    s += "\"connected\":" + String(wifiHelper.isConnected() ? "true" : "false") + ",";
-    s += "\"apMode\":" + String(wifiHelper.isApMode() ? "true" : "false") + ",";
+    s += "\"reverseLeft\":" + String(settings.data.reverseLeft ? "true" : "false") + ",";
+    s += "\"reverseRight\":" + String(settings.data.reverseRight ? "true" : "false") + ",";
+    s += "\"connected\":true,";
+    s += "\"apMode\":true,";
     s += "\"ip\":\"" + wifiHelper.ip() + "\",";
     s += "\"messageActive\":" + String(displayMgr.messageActive() ? "true" : "false") + ",";
     s += "\"message\":\"" + jsonEscape(displayMgr.message()) + "\"";
@@ -91,9 +93,8 @@ void WebServerMgr::begin() {
     _server.on("/api/info", HTTP_GET, [](AsyncWebServerRequest* request) {
         String s = "{";
         s += "\"ok\":true,";
-        s += "\"apMode\":" + String(wifiHelper.isApMode() ? "true" : "false") + ",";
-        s += "\"connected\":" + String(wifiHelper.isConnected() ? "true" : "false") + ",";
-        s += "\"haveSaved\":" + String(wifiHelper.haveSaved() ? "true" : "false") + ",";
+        s += "\"apMode\":true,";
+        s += "\"connected\":true,";
         s += "\"ip\":\"" + wifiHelper.ip() + "\",";
         s += "\"hostname\":\"" HOSTNAME "\"";
         s += "}";
@@ -107,18 +108,6 @@ void WebServerMgr::begin() {
         } else {
             request->send(401, "application/json", "{\"ok\":false}");
         }
-    });
-
-    // Wi-Fi provisioning. Open only while in AP mode (first-time setup portal);
-    // once the rover is on a network this endpoint requires the auth token.
-    _server.on("/api/wifi", HTTP_POST, [](AsyncWebServerRequest* request) {
-        if (!wifiHelper.isApMode() && !authorized(request)) {
-            return unauthorized(request);
-        }
-        String ssid = request->hasParam("ssid", true) ? request->getParam("ssid", true)->value() : "";
-        String pass = request->hasParam("pass", true) ? request->getParam("pass", true)->value() : "";
-        wifiHelper.apply(ssid.c_str(), pass.c_str());
-        request->send(200, "application/json", "{\"ok\":true,\"reconnecting\":true}");
     });
 
     // ---------- protected endpoints ----------
@@ -182,6 +171,15 @@ void WebServerMgr::begin() {
         if (request->hasParam("oledAnim", true)) {
             settings.setOledAnim(request->getParam("oledAnim", true)->value() == "1");
             eyes.setAnimEnabled(settings.data.oledAnim);
+        }
+        if (request->hasParam("reverseLeft", true) || request->hasParam("reverseRight", true)) {
+            bool left = request->hasParam("reverseLeft", true)
+                ? request->getParam("reverseLeft", true)->value() == "1"
+                : settings.data.reverseLeft;
+            bool right = request->hasParam("reverseRight", true)
+                ? request->getParam("reverseRight", true)->value() == "1"
+                : settings.data.reverseRight;
+            settings.setMotorReverse(left, right);
         }
         request->send(200, "application/json", "{\"ok\":true}");
     });

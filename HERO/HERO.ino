@@ -32,7 +32,7 @@ void setup() {
     // Reduce noisy IDF logging on the USB serial console.
     esp_log_level_set("*", ESP_LOG_ERROR);
 
-    settings.begin();        // NVS settings (wifi, token, camera, flash)
+    settings.begin();        // NVS settings (token, camera, flash, motor reverse)
     Serial.println("settings ok");
 
     motors.begin();          // LEDC PWM on GPIO1/14/21/42 (safe with motors unplugged)
@@ -46,12 +46,9 @@ void setup() {
                       PIN_OLED_SDA, PIN_OLED_SCL);
     }
 
-    wifiHelper.begin();      // connect to saved network or start config AP
-    Serial.printf("wifi %s ip=%s\n",
-                  wifiHelper.isApMode() ? "AP" : "STA",
-                  wifiHelper.ip().c_str());
-    displayMgr.setConnected(wifiHelper.isConnected(), wifiHelper.isApMode(),
-                            wifiHelper.ip().c_str());
+    wifiHelper.begin();      // SoftAP HERO / hero1234 at 192.168.4.1
+    Serial.printf("wifi AP ip=%s\n", wifiHelper.ip().c_str());
+    displayMgr.setConnected(true, true, wifiHelper.ip().c_str());
 
     if (cameraServer.begin()) {
         Serial.println("camera ok");
@@ -63,8 +60,7 @@ void setup() {
     Serial.println("web server ok");
 
     // Refresh OLED connection state now that networking is settled.
-    displayMgr.setConnected(wifiHelper.isConnected(), wifiHelper.isApMode(),
-                            wifiHelper.ip().c_str());
+    displayMgr.setConnected(true, true, wifiHelper.ip().c_str());
     Serial.println("HERO ready");
 }
 
