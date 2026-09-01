@@ -23,7 +23,9 @@ def c_escape(data):
         elif 32 <= o < 127:
             out.append(ch)
         else:
-            out.append("\\x%02x" % o)
+            # Octal, not \xHH: a following hex digit would extend \x and
+            # corrupt the next ASCII character (emoji became garbage in the UI).
+            out.append("\\%03o" % o)
     return "".join(out)
 
 

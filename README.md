@@ -106,7 +106,7 @@ handling and troubleshooting are in the [User Manual](USER_MANUAL.md).
    password, tap **Connect**, then join your lab Wi-Fi again.
 3. Open `http://hero.local` and unlock with the access token (default
    **`hero`**).
-4. Drive with the ◀ ▶ ▲ ▼ buttons, adjust speed, change the mood with 👀,
+4. Drive with the d-pad, adjust speed, change the mood,
    capture from the video panel, and send messages to the OLED.
 
 Power-cycling the rover returns it to setup mode if it cannot reach the saved

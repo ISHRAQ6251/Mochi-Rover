@@ -8,7 +8,8 @@
   --accent: #3ea6ff;
   --danger: #ff4d5e;
   --ok: #34d399;
-  --radius: 18px;
+  --radius: 16px;
+  --pad: 10px;
 }
 
 html.light {
@@ -62,7 +63,37 @@ input, select {
 input:focus, select:focus { outline: 2px solid var(--accent); }
 label { display: block; font-size: 0.78rem; color: var(--muted); margin: 12px 0 5px; }
 
-/* ---------- gates ---------- */
+svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.logo-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.4rem;
+  letter-spacing: 0;
+}
+.logo-mark.sm {
+  width: 28px;
+  height: 28px;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  margin-right: 6px;
+}
+
 .gate {
   position: fixed;
   inset: 0;
@@ -81,71 +112,81 @@ label { display: block; font-size: 0.78rem; color: var(--muted); margin: 12px 0 
   padding: 28px 24px;
   text-align: center;
 }
-.gate-brand { font-size: 3rem; line-height: 1; }
+.gate-card .logo-mark { margin: 0 auto 8px; }
 .gate-card h1 { margin: 8px 0 4px; font-size: 1.6rem; letter-spacing: 0.5px; }
 .gate-card p { font-size: 0.88rem; margin: 0 0 14px; }
 .gate-card button { width: 100%; margin-top: 14px; padding: 12px; font-weight: 700; }
 
-/* ---------- app ---------- */
 #app {
   position: fixed;
   inset: 0;
   display: flex;
   flex-direction: column;
-  padding-top: 60px;
+  padding-top: calc(52px + env(safe-area-inset-top));
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
-/* ---------- top bar ---------- */
 #topbar {
   position: absolute;
   top: 0; left: 0; right: 0;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
+  gap: 8px;
+  padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
   z-index: 20;
-  background: linear-gradient(to bottom, var(--bg), rgba(15,17,23,0));
+  background: var(--bg);
 }
-.brand { font-weight: 800; font-size: 1.15rem; letter-spacing: 0.3px; }
+.brand {
+  display: flex;
+  align-items: center;
+  font-weight: 800;
+  font-size: 1.05rem;
+  letter-spacing: 0.3px;
+}
 .status-pill {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-left: auto;
-  padding: 6px 12px;
+  padding: 5px 10px;
   border-radius: 20px;
   border: 1px solid var(--border);
   background: var(--panel);
 }
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
 .dot.on { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
-.dot-label { font-size: 0.6rem; font-weight: 700; letter-spacing: 1px; color: var(--muted); }
+.dot-label { font-size: 0.58rem; font-weight: 700; letter-spacing: 1px; color: var(--muted); }
 .pill-sep { width: 1px; height: 14px; background: var(--border); }
-.top-actions { display: flex; gap: 8px; }
+.top-actions { display: flex; gap: 6px; }
 .top-actions .icon {
   width: 40px; height: 40px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.1rem;
   background: var(--panel);
   border-radius: 12px;
+  padding: 0;
 }
-.top-actions .icon.on { background: var(--accent); }
+.top-actions .icon.on { background: var(--accent); color: #fff; }
 
-/* ---------- video ---------- */
 .video-panel {
   position: relative;
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-height: 0;
-  margin: 0 12px;
+  margin: 0 var(--pad);
   border-radius: var(--radius);
   overflow: hidden;
   background: #000;
   border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .video-panel img {
+  display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  object-position: center;
+  background: #000;
 }
 .video-actions {
   position: absolute;
@@ -159,14 +200,31 @@ label { display: block; font-size: 0.78rem; color: var(--muted); margin: 12px 0 
 .vbtn {
   width: 44px; height: 44px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 1.15rem;
   border-radius: 50%;
   background: rgba(20, 22, 30, 0.75);
   backdrop-filter: blur(6px);
+  padding: 0;
 }
-.vbtn.rec { color: var(--danger); }
-.vbtn.rec.recording { background: var(--danger); color: #fff; animation: pulse 1s infinite; }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+.vbtn svg { width: 20px; height: 20px; }
+.rec-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--danger);
+  display: block;
+}
+.vbtn.recording {
+  background: var(--danger);
+  color: #fff;
+  animation: pulse 1s infinite;
+}
+.vbtn.recording .rec-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: #fff;
+}
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
 .video-badge {
   position: absolute;
   left: 10px; top: 10px;
@@ -179,69 +237,72 @@ label { display: block; font-size: 0.78rem; color: var(--muted); margin: 12px 0 
   letter-spacing: 1px;
 }
 
-/* ---------- controls ---------- */
-.ctrl-wrap {
+.cockpit {
   display: flex;
+  align-items: center;
   gap: 12px;
-  padding: 12px;
+  padding: 10px var(--pad) 6px;
+  flex: 0 0 auto;
 }
-.ctrl-group {
-  flex: 1;
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 10px;
-}
-.ctrl-btns {
+.dpad {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: 58px 58px 58px;
+  grid-template-rows: 58px 58px 58px;
+  gap: 6px;
+  flex: 0 0 auto;
 }
-.ctrl-group:last-child .ctrl-btns { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; }
+#btnUp    { grid-column: 2; grid-row: 1; }
+#btnLeft  { grid-column: 1; grid-row: 2; }
+#btnRight { grid-column: 3; grid-row: 2; }
+#btnDown  { grid-column: 2; grid-row: 3; }
 .ctrl {
-  aspect-ratio: 1;
-  font-size: 1.5rem;
-  border-radius: 12px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
   background: var(--panel2);
   border: 1px solid var(--border);
+  padding: 0;
 }
+.ctrl svg { width: 28px; height: 28px; }
 .ctrl.active { background: var(--accent); color: #fff; border-color: transparent; }
-.ctrl-label {
-  margin-top: 8px;
-  text-align: center;
-  font-size: 0.6rem;
-  letter-spacing: 2px;
-  color: var(--muted);
-}
 
-/* ---------- deck ---------- */
-.deck {
-  background: var(--panel);
-  border-top: 1px solid var(--border);
-  border-radius: var(--radius) var(--radius) 0 0;
-  padding: 12px 14px calc(14px + env(safe-area-inset-bottom));
+.cockpit-side {
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
 }
-.msg-row { display: flex; gap: 8px; }
-.msg-row input { flex: 1; }
-.msg-row button { padding: 10px 14px; }
-.msg-row .ghost { color: var(--muted); }
-.deck-row { display: flex; align-items: center; gap: 10px; }
-.row-label { margin: 0; white-space: nowrap; font-size: 0.8rem; }
-.deck-row select { width: auto; flex: 1; }
-.speed-box { display: flex; align-items: center; gap: 8px; flex: 1; }
+.side-row { display: flex; align-items: center; gap: 8px; }
+.row-label { margin: 0; white-space: nowrap; font-size: 0.78rem; }
+.cockpit-side select { flex: 1; min-width: 0; padding: 8px; }
 .speed-box input[type="range"] { flex: 1; padding: 0; accent-color: var(--accent); height: 28px; }
 .speed-box output {
   min-width: 3ch; text-align: right; font-weight: 700;
   font-variant-numeric: tabular-nums; color: var(--accent);
 }
 
-/* ---------- mood popup ---------- */
+.deck {
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding: 8px var(--pad) 10px;
+  flex: 0 0 auto;
+}
+.msg-row { display: flex; gap: 8px; }
+.msg-row input { flex: 1; min-width: 0; padding: 10px; }
+.msg-row button { padding: 10px 14px; }
+.msg-row .ghost { color: var(--muted); }
+
 .mood-popup {
   position: fixed;
-  top: 64px;
+  top: calc(56px + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
   z-index: 40;
@@ -268,7 +329,6 @@ label { display: block; font-size: 0.78rem; color: var(--muted); margin: 12px 0 
 }
 .mood-opt:active { background: #f0f2f7; }
 
-/* ---------- settings modal ---------- */
 .modal {
   position: fixed;
   inset: 0;
@@ -297,10 +357,13 @@ label { display: block; font-size: 0.78rem; color: var(--muted); margin: 12px 0 
   width: 38px; height: 38px;
   background: var(--panel2);
   border-radius: 50%;
-  font-size: 0.95rem;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
 }
 .modal-actions button { width: 100%; padding: 12px; font-weight: 700; margin-top: 14px; }
 
 @media (min-width: 700px) {
   .modal-card { border-radius: var(--radius); margin-bottom: 24px; }
+  #app { max-width: 480px; left: 50%; right: auto; transform: translateX(-50%); }
+  #topbar { max-width: 480px; left: 50%; right: auto; width: 480px; transform: translateX(-50%); }
 }

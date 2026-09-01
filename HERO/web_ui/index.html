@@ -9,10 +9,9 @@
 </head>
 <body>
 
-  <!-- First-run provisioning (AP mode only) -->
   <div id="setupGate" class="gate hidden">
     <div class="gate-card">
-      <div class="gate-brand">🤖</div>
+      <div class="logo-mark">H</div>
       <h1>HERO</h1>
       <p class="muted">The rover is in setup mode. Enter your Wi-Fi network so it can connect.</p>
       <label>Wi-Fi SSID</label>
@@ -24,10 +23,9 @@
     </div>
   </div>
 
-  <!-- Access token gate -->
   <div id="authGate" class="gate hidden">
     <div class="gate-card">
-      <div class="gate-brand">🤖</div>
+      <div class="logo-mark">H</div>
       <h1>HERO</h1>
       <p class="muted">Enter the rover access token to unlock the cockpit.</p>
       <label>Access token</label>
@@ -39,43 +37,74 @@
 
   <div id="app" class="hidden">
     <header id="topbar">
-      <div class="brand">🤖 HERO</div>
+      <div class="brand"><span class="logo-mark sm">H</span> HERO</div>
       <div class="status-pill">
         <span class="dot" id="dotCtrl"></span><span class="dot-label">CTRL</span>
         <span class="pill-sep"></span>
         <span class="dot" id="dotCam"></span><span class="dot-label">CAM</span>
       </div>
       <div class="top-actions">
-        <button id="flashBtn" class="icon" title="flashlight">🔦</button>
-        <button id="moodBtn" class="icon" title="mood">👀</button>
-        <button id="settingsBtn" class="icon" title="settings">⚙️</button>
+        <button id="flashBtn" class="icon" title="Flashlight" aria-label="Flashlight">
+          <svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 10-14h-7l0-6z"/></svg>
+        </button>
+        <button id="moodBtn" class="icon" title="Mood" aria-label="Mood">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="9" cy="11" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="1.4" fill="currentColor" stroke="none"/><path d="M8.5 15c1.2 1.4 5.8 1.4 7 0"/></svg>
+        </button>
+        <button id="settingsBtn" class="icon" title="Settings" aria-label="Settings">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3V20.5M4.9 7.1l1.6 1.6M17.5 15.3l1.6 1.6M3.5 12h2.2M18.3 12H20.5M4.9 16.9l1.6-1.6M17.5 8.7l1.6-1.6"/></svg>
+        </button>
       </div>
     </header>
 
     <div class="video-panel">
       <img id="video" alt="live camera feed">
       <div class="video-actions">
-        <button id="flipBtn" class="vbtn" title="flip / refresh">🔄</button>
-        <button id="photoBtn" class="vbtn" title="capture photo">📷</button>
-        <button id="recBtn" class="vbtn" title="record clip">●</button>
+        <button id="flipBtn" class="vbtn" title="Flip / refresh" aria-label="Flip">
+          <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 15"/><path d="M4 20v-5h5"/></svg>
+        </button>
+        <button id="photoBtn" class="vbtn" title="Capture photo" aria-label="Photo">
+          <svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+        </button>
+        <button id="recBtn" class="vbtn rec" title="Record clip" aria-label="Record">
+          <span class="rec-dot"></span>
+        </button>
       </div>
       <div id="videoBadge" class="video-badge hidden"></div>
     </div>
 
-    <div class="ctrl-wrap">
-      <div class="ctrl-group">
-        <div class="ctrl-btns">
-          <button id="btnLeft" class="ctrl" title="left">◀</button>
-          <button id="btnRight" class="ctrl" title="right">▶</button>
-        </div>
-        <div class="ctrl-label">STEERING</div>
+    <div class="cockpit">
+      <div class="dpad" aria-label="Drive pad">
+        <button id="btnUp" class="ctrl" title="Forward" aria-label="Forward">
+          <svg viewBox="0 0 24 24"><path d="M6 14l6-6 6 6"/></svg>
+        </button>
+        <button id="btnLeft" class="ctrl" title="Left" aria-label="Left">
+          <svg viewBox="0 0 24 24"><path d="M14 6l-6 6 6 6"/></svg>
+        </button>
+        <button id="btnRight" class="ctrl" title="Right" aria-label="Right">
+          <svg viewBox="0 0 24 24"><path d="M10 6l6 6-6 6"/></svg>
+        </button>
+        <button id="btnDown" class="ctrl" title="Back" aria-label="Back">
+          <svg viewBox="0 0 24 24"><path d="M6 10l6 6 6-6"/></svg>
+        </button>
       </div>
-      <div class="ctrl-group">
-        <div class="ctrl-btns">
-          <button id="btnUp" class="ctrl" title="forward">▲</button>
-          <button id="btnDown" class="ctrl" title="back">▼</button>
+      <div class="cockpit-side">
+        <div class="side-row">
+          <label class="row-label" for="moodSelect">Mood</label>
+          <select id="moodSelect">
+            <option value="idle">Idle</option>
+            <option value="happy">Happy</option>
+            <option value="angry">Angry</option>
+            <option value="curious">Curious</option>
+            <option value="dead">Dead</option>
+            <option value="sleepy">Sleepy</option>
+            <option value="wink">Wink</option>
+          </select>
         </div>
-        <div class="ctrl-label">THROTTLE</div>
+        <div class="side-row speed-box">
+          <label class="row-label" for="speed">Speed</label>
+          <input id="speed" type="range" min="0" max="255" value="255" step="1">
+          <output id="speedVal">255</output>
+        </div>
       </div>
     </div>
 
@@ -83,44 +112,27 @@
       <div class="msg-row">
         <input id="msgInput" maxlength="32" placeholder="Message to OLED..." autocomplete="off">
         <button id="msgSend">Send</button>
-        <button id="msgClear" class="ghost hidden" title="clear message">✕</button>
-      </div>
-      <div class="deck-row">
-        <label class="row-label">Mood</label>
-        <select id="moodSelect">
-          <option value="idle">😶 Idle</option>
-          <option value="happy">😊 Happy</option>
-          <option value="angry">😡 Angry</option>
-          <option value="curious">🤔 Curious</option>
-          <option value="dead">😵 Dead</option>
-          <option value="sleepy">😴 Sleepy</option>
-          <option value="wink">😉 Wink</option>
-        </select>
-        <div class="speed-box">
-          <label class="row-label" for="speed">Speed:</label>
-          <input id="speed" type="range" min="0" max="255" value="255" step="1">
-          <output id="speedVal">255</output>
-        </div>
+        <button id="msgClear" class="ghost hidden" title="Clear message">X</button>
       </div>
     </div>
   </div>
 
-  <!-- Mood popup (white rounded card under the header) -->
   <div id="moodPopup" class="mood-popup hidden">
-    <button class="mood-opt" data-mood="happy">😊 Happy</button>
-    <button class="mood-opt" data-mood="angry">😡 Angry</button>
-    <button class="mood-opt" data-mood="curious">🤔 Curious</button>
-    <button class="mood-opt" data-mood="dead">😵 Dead</button>
-    <button class="mood-opt" data-mood="sleepy">😴 Sleepy</button>
-    <button class="mood-opt" data-mood="wink">😉 Wink</button>
+    <button class="mood-opt" data-mood="happy">Happy</button>
+    <button class="mood-opt" data-mood="angry">Angry</button>
+    <button class="mood-opt" data-mood="curious">Curious</button>
+    <button class="mood-opt" data-mood="dead">Dead</button>
+    <button class="mood-opt" data-mood="sleepy">Sleepy</button>
+    <button class="mood-opt" data-mood="wink">Wink</button>
   </div>
 
-  <!-- Settings modal -->
   <div id="settingsModal" class="modal hidden">
     <div class="modal-card">
       <div class="modal-head">
         <h2>Rover Connection &amp; Settings</h2>
-        <button id="settingsClose" class="icon" title="close">✕</button>
+        <button id="settingsClose" class="icon" title="Close" aria-label="Close">
+          <svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg>
+        </button>
       </div>
       <label>Rover IP / Domain</label>
       <input id="setIp" placeholder="192.168.4.1" spellcheck="false">

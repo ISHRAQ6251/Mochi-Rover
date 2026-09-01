@@ -12,19 +12,20 @@ moods, driving and messages.
 - Live MJPEG video stream (`/stream`), SVGA 800x600 default, quality configurable
   via NVS; XCLK 20 MHz, PSRAM frame buffers, `CAMERA_GRAB_LATEST` for low latency.
 - Browser-side captures:
-  - Photo: `/capture` temporarily bumps to UXGA (1600x1200) JPEG, downloaded as
-    `hero_<timestamp>.jpg`.
+  - Photo: `/capture` grabs a JPEG at the live stream resolution (SVGA default),
+    downloaded as `hero_<timestamp>.jpg`. (UXGA mid-stream reused the SVGA
+    buffers and produced a half-valid image.)
   - Clip: recorded client-side with MediaRecorder (VP9/VP8 WebM) by drawing the
     stream to a hidden canvas; downloaded as `hero_clip.webm`. No SD card used.
-- Differential drive: ◀ ▶ ▲ ▼ hold-to-move buttons, speed slider (0-255), stop
-  on release, arcade-style throttle + steering mixing on the DRV8833.
+- Differential drive: cross d-pad (forward / left / right / back), speed slider
+  (0-255), stop on release, arcade-style throttle + steering mixing on the DRV8833.
 - Drive safety watchdog: the UI re-sends the drive command every 300 ms while a
   button is held; if no drive/stop command reaches the rover for ~1.5 s
   (`DRIVE_WATCHDOG_MS`) the motors coast automatically. A dropped connection,
   closed tab or killed app can therefore never leave the rover driving itself.
 - Flashlight toggle driving the on-board LED on GPIO2.
 - Mood system: six moods (Happy, Angry, Curious, Dead, Sleepy, Wink) shown both
-  in a quick popup (👀) and a dropdown. A mood override lasts ~4 s (Wink 1.5 s)
+  in a quick popup and a dropdown. A mood override lasts ~4 s (Wink 1.5 s)
   then returns to the idle face.
 - Message-to-OLED: persistent rounded text box with the animated eyes kept in a
   compact mode above it; cleared with the ✕ button in the UI.
@@ -41,12 +42,11 @@ moods, driving and messages.
 
 Smartphone-first dark UI with a light theme option (saved in the browser):
 
-- Header: robot wordmark "🤖 HERO", a status pill (red/green CTRL dot for
-  connection, CAM dot for live feed), and 🔦 / 👀 / ⚙️ buttons.
-- Rounded video panel with overlay buttons: 🔄 flip/refresh (mirror+vflip the
-  image and reload the stream), 📷 capture photo, ● record clip (turns ⏹ while
-  recording, REC badge shown).
-- One row of four square control buttons: ◀ ▶ (STEERING) and ▲ ▼ (THROTTLE).
+- Header: "HERO" wordmark, a status pill (CTRL / CAM dots), and flashlight /
+  mood / settings icon buttons (SVG, no emoji).
+- Video panel fills remaining portrait height and keeps the sensor aspect
+  (`object-fit: contain`). Overlay: flip, photo, record.
+- Cross d-pad (forward / left / right / back) plus mood + speed on the side.
 - Bottom card: "Message to OLED..." input with inline Send (+ ✕ to clear), a
   Mood dropdown, and a Speed slider with a live value.
 - Mood popup: a white rounded card under the header with the six moods.
@@ -123,7 +123,7 @@ start and gaze in the steering direction.
 
 - The MJPEG stream uses a single shared packetizer, so a second simultaneous
   viewer can cause glitches on the first; fine for a single controller phone.
-- `/capture` temporarily switches the sensor to UXGA, which briefly interrupts
-  the live stream for other clients.
+- `/capture` grabs a JPEG at the current stream size. Taking a photo still
+  briefly interrupts the live MJPEG for other clients.
 - If the saved Wi-Fi network is unreachable, power-cycle the rover to re-enter
   the configuration AP mode.

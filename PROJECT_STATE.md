@@ -69,8 +69,8 @@ stole that port and camera probe failed with 0x103.
 - OV5640: PIXFORMAT_JPEG, XCLK 20 MHz, fb in PSRAM, fb_count 2, grab LATEST;
   default stream SVGA (800x600), quality from NVS (default 12), all adjustable.
 - OLED face drawn procedurally with Adafruit_GFX + SH1106 I2C (no bitmaps).
-- USER-CONFIRMED: captures go to the browser (stills via /capture, clips recorded
-  client-side via MediaRecorder); no SD dependency.
+- USER-CONFIRMED: captures go to the browser (stills via /capture at the live
+  stream size, clips recorded client-side via MediaRecorder); no SD dependency.
 - USER-CONFIRMED: AP config portal for Wi-Fi provisioning (no network saved ->
   rover becomes hotspot; UI enters SSID/pass stored in NVS), captive DNS, mDNS
   hostname `hero`.
@@ -143,6 +143,14 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
       claim. Implemented `DRIVE_WATCHDOG_MS` (1.5 s) in `MotorControl::update()`
       and a 300 ms drive keep-alive in `web_ui/app.js`; regenerated
       `web_assets.h`; docs updated (USER_MANUAL, FUNCTIONALITY, README).
+
+- [x] **Cockpit UI pass (2026-09-01)**: CAM lamp now tracks the MJPEG
+      connection (onload only fired on the first frame, so the dot went red
+      while video kept playing). Emoji replaced with SVG because PROGMEM `\x`
+      escapes ate following hex digits. Portrait layout: video fills leftover
+      height with `object-fit: contain` (4:3 sensor), cross d-pad, mood/speed
+      beside it. `/capture` no longer switches to UXGA (that reused SVGA
+      buffers and produced a half-garbage JPEG).
 
 - [x] **OLED garbage fix (2026-09-01)**: `drawBitmap()` onto the SH1106 only
       OR'd white pixels and never cleared the panel RAM, so frames smeared into

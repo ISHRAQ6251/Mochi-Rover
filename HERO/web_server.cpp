@@ -75,13 +75,13 @@ void WebServerMgr::begin() {
 
     // ---------- static assets ----------
     _server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
-        request->send_P(200, "text/html", INDEX_HTML);
+        request->send_P(200, "text/html; charset=utf-8", INDEX_HTML);
     });
     _server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest* request) {
-        request->send_P(200, "text/css", STYLE_CSS);
+        request->send_P(200, "text/css; charset=utf-8", STYLE_CSS);
     });
     _server.on("/app.js", HTTP_GET, [](AsyncWebServerRequest* request) {
-        request->send_P(200, "application/javascript", APP_JS);
+        request->send_P(200, "application/javascript; charset=utf-8", APP_JS);
     });
 
     // ---------- camera ----------

@@ -10,7 +10,7 @@ const state = {
   mood: "idle",
   flashlight: false,
   flip: false,
-  camAliveAt: 0,
+  camLive: false,
 };
 
 const authHeaders = () => ({ "X-Auth-Token": state.token });
@@ -110,16 +110,24 @@ $("authBtn").addEventListener("click", unlock);
 $("authToken").addEventListener("keydown", (e) => { if (e.key === "Enter") unlock(); });
 
 /* ---------------- video ---------------- */
+function markCam(live) {
+  state.camLive = !!live;
+  const d = $("dotCam");
+  if (d) d.classList.toggle("on", state.camLive);
+}
+
 function startVideo() {
   const v = $("video");
-  v.onload = () => { state.camAliveAt = Date.now(); $("video").classList.remove("hidden"); };
+  v.onload = () => { markCam(true); };
   v.onerror = () => {
+    markCam(false);
     setTimeout(() => { v.src = "/stream?t=" + Date.now(); }, 2500);
   };
   v.src = "/stream?t=" + Date.now();
 }
 function refreshVideo() {
   const v = $("video");
+  markCam(false);
   v.src = "/stream?t=" + Date.now();
 }
 
@@ -138,11 +146,13 @@ $("photoBtn").addEventListener("click", async () => {
     const url = URL.createObjectURL(blob);
     a.href = url;
     a.download = "hero_" + new Date().toISOString().replace(/[:.]/g, "-") + ".jpg";
+    a.rel = "noopener";
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 3000);
   } catch (e) { /* ignore */ }
+  refreshVideo();
 });
 
 /* ------- clip recording (client-side MediaRecorder) ------- */
@@ -393,8 +403,8 @@ async function pollState() {
   state.messageActive = !!s.messageActive;
   updateMsgState(state.messageActive);
   $("flashBtn").classList.toggle("on", s.flashlightOn);
-  $("dotCtrl").classList.toggle("on", s.connected && !s.apMode);
-  $("dotCam").classList.toggle("on", Date.now() - state.camAliveAt < 6000);
+  $("dotCtrl").classList.toggle("on", !!s.connected || !!s.apMode);
+  $("dotCam").classList.toggle("on", state.camLive);
   if (s.mood && s.mood !== state.mood) {
     state.mood = s.mood;
     $("moodSelect").value = s.mood;

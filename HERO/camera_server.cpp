@@ -125,9 +125,9 @@ void CameraServer::applySettings() {
     s->set_vflip(s, flip ? 1 : 0);
 }
 
-// Single JPEG snapshot (briefly bumps to UXGA for a higher-res photo).
-// Served through a chunked filler that reads directly from the PSRAM frame
-// buffer so we never copy a large JPEG onto the internal heap.
+// Single JPEG snapshot at the live stream resolution. Served through a
+// chunked filler that reads directly from the PSRAM frame buffer so we
+// never copy a large JPEG onto the internal heap.
 static camera_fb_t* s_snapFb = nullptr;
 
 static size_t snapshotFiller(uint8_t* buf, size_t maxLen, size_t index) {
@@ -153,19 +153,17 @@ static void setupCapture(AsyncWebServer& server) {
             request->send(503, "text/plain", "busy");
             return;
         }
-        framesize_t prevSize = s->status.framesize;
-        int prevQuality = s->status.quality;
-        s->set_framesize(s, FRAMESIZE_UXGA);
-        s->set_quality(s, 10);
+        // Capture at the live stream size. Jumping to UXGA mid-stream reuses
+        // the SVGA PSRAM buffers and produces a JPEG that is only valid in
+        // the top half of the image (the rest is garbage).
+        camera_fb_t* stale = esp_camera_fb_get();
+        if (stale) esp_camera_fb_return(stale);
 
         camera_fb_t* fb = nullptr;
         uint32_t start = millis();
         while (!fb && millis() - start < STREAM_TIMEOUT_MS) {
             fb = esp_camera_fb_get();
         }
-
-        s->set_quality(s, prevQuality);
-        s->set_framesize(s, prevSize);
 
         if (!fb) {
             request->send(503, "text/plain", "camera busy");
@@ -174,6 +172,8 @@ static void setupCapture(AsyncWebServer& server) {
         s_snapFb = fb;
         AsyncWebServerResponse* resp =
             request->beginChunkedResponse("image/jpeg", snapshotFiller);
+        resp->addHeader("Content-Disposition", "attachment; filename=\"hero.jpg\"");
+        resp->addHeader("Cache-Control", "no-store");
         request->send(resp);
     });
 }

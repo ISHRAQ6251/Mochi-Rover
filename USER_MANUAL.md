@@ -266,23 +266,19 @@ On the lab Wi-Fi, open one of these on your phone:
   status screen (or shown in the OLED CONNECTION screen / on the AP page).
 
 You will be asked for the **access token** - the default is **`hero`**. Change
-it later in the ⚙️ settings panel.
+it later in the settings panel.
 
 ### 5.3 The control page (cockpit)
 
-- **Top bar** - the "HERO" logo, a status pill (green dot = connected to the
-  rover, and a camera dot that lights when live video is arriving), then three
-  buttons: **🔦** flashlight, **👀** quick mood popup, **⚙️** settings.
-- **Video panel** - live stream. Overlay buttons: **🔄** flip/refresh (mirrors
-  + flips the image and reloads the stream), **📷** takes a photo,
-  **●** records a video clip (turns **⏹** while recording, a red REC badge
-  shows; tap again to finish).
-- **Steering / throttle pads** - four round buttons:
-  - **◀ ▶** (STEERING) and **▲ ▼** (THROTTLE).
-  - Hold to move, release to stop. Combine them to drive in arcs, e.g. hold
-    ▲ and ◀ together to turn while moving forward.
-  - Every command is acknowledged by the rover (the OLED shows driving-reaction
-    eyes).
+- **Top bar** - the "HERO" logo, a status pill (CTRL = phone talking to the
+  rover, CAM = live video), then flashlight / mood / settings.
+- **Video panel** - live stream, letterboxed to the camera aspect so nothing
+  is cropped. Overlay: flip/refresh, photo, record (turns into a stop square
+  while recording; a red REC badge shows; tap again to finish).
+- **Drive pad** - a cross of four hold-to-move buttons (forward / left / right
+  / back). Combine them to drive in arcs, e.g. hold forward and left together.
+  Every command is acknowledged by the rover (the OLED shows driving-reaction
+  eyes). Mood and speed sit beside the pad.
 - **Drive safety watchdog** - while you hold a button the app re-sends the drive
   command every 300 ms. If the connection drops, the browser tab is closed, or
   the app is killed, the rover receives no more commands and stops the motors on
@@ -310,13 +306,13 @@ it later in the ⚙️ settings panel.
 
 ### 5.5 Photos and clips
 
-- **Photo** - a still is captured at high resolution (1600x1200) and downloads
-  as `hero_<timestamp>.jpg`.
+- **Photo** - a still is captured at the live stream resolution (800x600 by
+  default) and downloads as `hero_<timestamp>.jpg`.
 - **Clip** - recording is done on your phone's browser (WebM), so no SD card is
   needed. It downloads as `hero_clip.webm` when you stop recording. Note that
   the stream must be live (green CAM dot) for recording to work.
 
-### 5.6 Settings (⚙️)
+### 5.6 Settings
 
 - **Rover IP / Domain** - the address the app talks to; useful if you use a
   fixed IP.
@@ -352,7 +348,10 @@ password), power-cycle it. After ~10 seconds of failed connection it opens the
 | Lost the access token | Reflash the firmware to restore the default token `hero` |
 | Flickering / purple video | Lower camera XCLK from 20 MHz to 10 MHz in `camera_server.cpp` |
 | Face shows "AP:" IP | The rover is in setup mode - provision Wi-Fi from `http://192.168.4.1` |
-| Video freezes briefly, CAM dot red, then recovers | The stream drops and auto-reconnects after ~2.5 s - normal if the camera is busy capturing a photo; avoid tapping 📷 while driving |
+| Video freezes briefly, CAM dot red, then recovers | The stream drops and auto-reconnects after ~2.5 s - normal if the camera is busy capturing a photo; avoid tapping photo while driving |
 | Live view frozen / static frame on iPhone Safari | Older iOS Safari renders only the first MJPEG frame; use Chrome on Android or install Chrome on the iPhone |
+| CAM dot turns red while the picture is still moving | Reflash this build - the CAM lamp now stays green for the life of the MJPEG connection, not just the first frame |
+| Icons show as garbage / boxes | Reflash this build - the UI uses SVG icons instead of emoji |
+| Photo is only valid in the top half, rest is garbage | Reflash this build - capture stays at stream resolution instead of jumping to UXGA |
 | Motors keep running after closing the app / phone disconnects | The firmware's drive watchdog coasts the motors ~1.5 s after the last drive command, so an unreachable app can never drive the rover on its own. Ensure you flashed the latest build (older builds lacked the watchdog) |
 | All buttons do nothing after logging in | The POST requests were not decoded by the server - make sure you flashed the current `web_assets.h` / `app.js` build (the UI must send `Content-Type: application/x-www-form-urlencoded`)
