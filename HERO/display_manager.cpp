@@ -9,18 +9,39 @@ bool DisplayManager::begin() {
     _lastActivity = millis();
     _present = false;
 
-    Wire1.begin(PIN_OLED_SDA, PIN_OLED_SCL);
-    Wire1.setTimeOut(50);
-    Wire1.setClock(400000);
-
-    Wire1.beginTransmission(OLED_I2C_ADDR);
-    if (Wire1.endTransmission() != 0) {
+    // Do not call Wire1.begin() here: Adafruit_SH1106G::begin() starts the
+    // bus itself. A second begin() on ESP32 3.x logs
+    // "I2C bus id(1) has already been acquired" and leaves the bus unusable.
+    Wire1.setPins(PIN_OLED_SDA, PIN_OLED_SCL);
+    if (!_display.begin(OLED_I2C_ADDR, false)) {
+        Wire1.end();
         return false;
     }
 
-    _display.begin(OLED_I2C_ADDR, false);
+    Wire1.setTimeOut(50);
+    Wire1.setClock(400000);
+
+    uint8_t addr = OLED_I2C_ADDR;
+    Wire1.beginTransmission(addr);
+    if (Wire1.endTransmission() != 0) {
+        addr = 0x3D;
+        Wire1.beginTransmission(addr);
+        if (Wire1.endTransmission() != 0) {
+            Wire1.end();
+            return false;
+        }
+        Serial.printf("oled: using alt I2C addr 0x%02X\n", addr);
+        Wire1.end();
+        Wire1.setPins(PIN_OLED_SDA, PIN_OLED_SCL);
+        if (!_display.begin(addr, false)) {
+            Wire1.end();
+            return false;
+        }
+    }
+
     _present = true;
     _display.clearDisplay();
+    _display.setContrast(0x7F);
     _display.display();
 
     eyes.begin();
