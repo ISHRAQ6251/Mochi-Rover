@@ -79,17 +79,19 @@
 #define NVS_KEY_TOKEN     "auth_token"
 #define NVS_KEY_RES       "cam_res"
 #define NVS_KEY_QUALITY   "cam_quality"
-#define NVS_KEY_FPS       "cam_fps"
 #define NVS_KEY_FLIP      "cam_flip"
 #define NVS_KEY_FLASH     "flash_on"
 #define NVS_KEY_OLEDANIM  "oled_anim"
 #define NVS_KEY_REV_L     "rev_left"
 #define NVS_KEY_REV_R     "rev_right"
+#define NVS_KEY_TRIM_L    "trim_l"
+#define NVS_KEY_TRIM_R    "trim_r"
+#define MOTOR_TRIM_MIN    50
+#define MOTOR_TRIM_MAX    100
 
 // ---------------------------------------------------------------------------
 // Behavioural timings
 // ---------------------------------------------------------------------------
 #define SLEEP_TIMEOUT_MS  60000UL     // 60 s inactivity before eye sleep mode
-#define STREAM_TIMEOUT_MS 10000UL     // max time to wait for a camera frame
 #define DRIVE_WATCHDOG_MS 1500UL      // stop motors if no drive/stop cmd in this window
 #define MOOD_OVERRIDE_MS  4000UL      // mood override lasts ~4 s, then idle

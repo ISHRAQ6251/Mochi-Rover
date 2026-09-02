@@ -8,6 +8,9 @@ CameraServer cameraServer;
 static const char STREAM_BOUNDARY[] = "--frame\r\nContent-Type: image/jpeg\r\n\r\n";
 static const size_t STREAM_HEADER_LEN = sizeof(STREAM_BOUNDARY) - 1;
 
+static const char STREAM_TRAILER[] = "\r\n";
+static const size_t STREAM_TRAILER_LEN = sizeof(STREAM_TRAILER) - 1;
+
 // Incremental MJPEG packetizer used by the async chunked stream filler.
 static class StreamPacketizer {
 public:
@@ -15,18 +18,29 @@ public:
         if (index == 0) {
             reset();
         } else if (index != _written) {
-            // server asked for a non-contiguous offset; resync
             reset();
             _written = index;
         }
 
         size_t written = 0;
         while (written < maxLen) {
-            if (!_fb && !nextFrame()) break;
+            if (!_fb && !nextFrame()) {
+                // Returning 0 ends the chunked response. Keep the MJPEG
+                // connection alive with multipart-legal whitespace if a
+                // frame is briefly unavailable (e.g. during /capture).
+                if (written == 0) buf[written++] = '\n';
+                break;
+            }
+            const size_t jpegLen = _fb->len;
+            const size_t trailerStart = STREAM_HEADER_LEN + jpegLen;
+            const size_t frameLen = trailerStart + STREAM_TRAILER_LEN;
             if (_framePos < STREAM_HEADER_LEN) {
                 buf[written++] = (uint8_t)STREAM_BOUNDARY[_framePos++];
-            } else if (_framePos - STREAM_HEADER_LEN < _fb->len) {
+            } else if (_framePos < trailerStart) {
                 buf[written++] = _fb->buf[_framePos - STREAM_HEADER_LEN];
+                _framePos++;
+            } else if (_framePos < frameLen) {
+                buf[written++] = (uint8_t)STREAM_TRAILER[_framePos - trailerStart];
                 _framePos++;
             } else {
                 esp_camera_fb_return(_fb);
@@ -37,16 +51,6 @@ public:
         return written;
     }
 
-private:
-    // Begin serving a new frame. May be invoked mid-fill when a frame ends
-    // before the buffer is full; frame bytes are appended contiguously.
-    bool nextFrame() {
-        _fb = esp_camera_fb_get();
-        if (!_fb) return false;
-        _framePos = 0;
-        return true;
-    }
-
     void reset() {
         if (_fb) {
             esp_camera_fb_return(_fb);
@@ -54,6 +58,14 @@ private:
         }
         _written = 0;
         _framePos = 0;
+    }
+
+private:
+    bool nextFrame() {
+        _fb = esp_camera_fb_get();
+        if (!_fb) return false;
+        _framePos = 0;
+        return true;
     }
 
     camera_fb_t* _fb = nullptr;
@@ -130,12 +142,18 @@ void CameraServer::applySettings() {
 // never copy a large JPEG onto the internal heap.
 static camera_fb_t* s_snapFb = nullptr;
 
+static void releaseSnap() {
+    if (s_snapFb) {
+        esp_camera_fb_return(s_snapFb);
+        s_snapFb = nullptr;
+    }
+}
+
 static size_t snapshotFiller(uint8_t* buf, size_t maxLen, size_t index) {
     if (!s_snapFb) return 0;
     if (index >= s_snapFb->len) {
-        esp_camera_fb_return(s_snapFb);
-        s_snapFb = nullptr;
-        return 0;   // end of response
+        releaseSnap();
+        return 0;
     }
     size_t chunk = min(maxLen, s_snapFb->len - index);
     memcpy(buf, s_snapFb->buf + index, chunk);
@@ -155,21 +173,19 @@ static void setupCapture(AsyncWebServer& server) {
         }
         // Capture at the live stream size. Jumping to UXGA mid-stream reuses
         // the SVGA PSRAM buffers and produces a JPEG that is only valid in
-        // the top half of the image (the rest is garbage).
+        // the top half of the image (the rest is garbage). Drop one stale
+        // GRAB_LATEST frame, then take the next. Do not spin for seconds:
+        // that would stall the async server (including drive commands).
         camera_fb_t* stale = esp_camera_fb_get();
         if (stale) esp_camera_fb_return(stale);
-
-        camera_fb_t* fb = nullptr;
-        uint32_t start = millis();
-        while (!fb && millis() - start < STREAM_TIMEOUT_MS) {
-            fb = esp_camera_fb_get();
-        }
+        camera_fb_t* fb = esp_camera_fb_get();
 
         if (!fb) {
             request->send(503, "text/plain", "camera busy");
             return;
         }
         s_snapFb = fb;
+        request->onDisconnect(releaseSnap);
         AsyncWebServerResponse* resp =
             request->beginChunkedResponse("image/jpeg", snapshotFiller);
         resp->addHeader("Content-Disposition", "attachment; filename=\"hero.jpg\"");
@@ -179,11 +195,12 @@ static void setupCapture(AsyncWebServer& server) {
 }
 
 void CameraServer::setupHandlers(AsyncWebServer& server) {
-    // MJPEG live stream
     server.on("/stream", HTTP_GET, [](AsyncWebServerRequest* request) {
+        request->onDisconnect([]() { streamPacketizer.reset(); });
         AsyncWebServerResponse* resp =
             request->beginChunkedResponse("multipart/x-mixed-replace; boundary=frame",
                                           streamFiller);
+        resp->addHeader("Cache-Control", "no-store");
         request->send(resp);
     });
 

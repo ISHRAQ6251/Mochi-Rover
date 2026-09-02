@@ -23,6 +23,9 @@ public:
     void setLeft(int16_t speed);
     void setRight(int16_t speed);
 
+    // Re-apply the last throttle/steering after reverse or trim changes.
+    void reapply();
+
     // Coast both motors.
     void stop();
 

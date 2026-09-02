@@ -308,6 +308,8 @@ address plus the hotspot password. Change the access token later in Settings.
 - **Theme** - dark / light.
 - **Reverse left / right motor** - flip a channel in software if a motor
   (or the whole rover) drives the wrong way. Saved on the rover.
+- **Left / right trim** - scale that motor's PWM (50-100%) if one N20 is
+  faster than the other. Lower the faster side until forward tracks straight.
 - **Change access token** - pick a new login password (min 4 characters). Write
   it down - it is stored on the rover.
 
@@ -332,6 +334,7 @@ board and wait a few seconds, then scan for Wi-Fi again.
 | Motors do not spin | Check DRV8833 power (VM/GND), `nSLEEP` tied to 3.3 V, and IN wires; try 100 on the speed slider |
 | One motor spins backwards | Settings > Reverse left/right motor (or swap that motor's two wires) |
 | Motors spin but the rover turns wrong way | Reverse both motors in Settings, or swap left/right channels (AO/BO) |
+| Rover drifts left/right when going straight | Settings > lower Left/Right trim on the faster motor until it tracks straight |
 | Can't find the rover Wi-Fi | Stay near the board, wait ~10 s after power-on, join **HERO** / **hero1234** |
 | Lost the access token | Reflash the firmware to restore the default token `hero` |
 | Flickering / purple video | Lower camera XCLK from 20 MHz to 10 MHz in `camera_server.cpp` |

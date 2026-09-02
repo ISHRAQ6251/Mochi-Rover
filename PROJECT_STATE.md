@@ -74,7 +74,8 @@ stole that port and camera probe failed with 0x103.
 - USER-CONFIRMED (2026-09-01): AP-only. Always SoftAP `HERO` / `hero1234` at
   192.168.4.1. No station-mode / lab-router provisioning.
 - USER-CONFIRMED: default auth password `hero`, changeable from settings modal.
-- Settings: theme, reverse-left / reverse-right motor (NVS), optional new token.
+- Settings: theme, reverse-left / reverse-right motor, left/right PWM trim
+  50-100% (NVS `trim_l` / `trim_r`), optional new token.
 - Drive safety: motors stop when controls are released / on disconnect. The
   firmware watchdog coasts the motors ~1.5 s after the last drive/stop command
   (`DRIVE_WATCHDOG_MS`), and the UI repeats the drive command every 300 ms while
@@ -145,6 +146,15 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
 - [x] **AP-only + motor reverse (2026-09-01)**: dropped STA/provisioning; the
       rover always advertises SoftAP HERO. Settings can reverse each motor
       independently (NVS `rev_left` / `rev_right`).
+
+- [x] **Stream / capture / cockpit bugs (2026-09-02)**: MJPEG filler no longer
+      ends the response on a missed frame (that dropped live view during
+      /capture). Snapshot no longer blocks the async server for up to 10 s;
+      frame buffers are returned on client disconnect. UI: one poll timer,
+      stop motors on hide/pagehide, CTRL lamp reflects poll failure.
+
+- [x] **Motor trim (2026-09-02)**: Settings left/right PWM scale 50-100% so
+      unmatched N20s can be calibrated to track straight. Saved in NVS.
 
 - [x] **Cockpit UI pass (2026-09-01)**: CAM lamp now tracks the MJPEG
       connection (onload only fired on the first frame, so the dot went red

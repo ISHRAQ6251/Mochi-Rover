@@ -151,7 +151,7 @@ void DisplayManager::renderConnection() {
     _display.setCursor(8, 36);
     _display.print("Pass: hero1234");
     _display.setCursor(8, 48);
-    _display.print("token: hero");
+    _display.print("open 192.168.4.1");
 
     if ((millis() / 500) % 2) {
         _display.fillCircle(116, 8, 3, SH110X_WHITE);

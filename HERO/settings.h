@@ -13,6 +13,8 @@ struct RoverSettings {
     bool oledAnim = true;
     bool reverseLeft = false;
     bool reverseRight = false;
+    uint8_t trimLeft = 100;
+    uint8_t trimRight = 100;
 };
 
 class Settings {
@@ -31,6 +33,7 @@ public:
     void setFlashlight(bool on);
     void setOledAnim(bool on);
     void setMotorReverse(bool left, bool right);
+    void setMotorCal(bool reverseLeft, bool reverseRight, uint8_t trimLeft, uint8_t trimRight);
 
 private:
     void writeString(const char* key, const char* value);

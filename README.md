@@ -103,8 +103,9 @@ handling and troubleshooting are in the [User Manual](USER_MANUAL.md).
    **`hero1234`**).
 2. Join that network on your phone and open `http://192.168.4.1`.
 3. Unlock with the access token (default **`hero`**).
-4. Drive with the d-pad, adjust speed, reverse a motor in Settings if it
-   spins the wrong way, capture from the video panel, send OLED messages.
+4. Drive with the d-pad, adjust speed, reverse or trim a motor in Settings if
+   it spins the wrong way or the rover drifts, capture from the video panel,
+   send OLED messages.
 
 See the [User Manual](USER_MANUAL.md) for the full cockpit tour.
 

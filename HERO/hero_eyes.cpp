@@ -206,16 +206,12 @@ void HeroEyes::update(uint32_t now) {
             case HeroMood::IDLE:
             default:
                 _targetLid = 255;
-                _targetPupilX = _targetSaccadeX;
-                _targetPupilY = _targetSaccadeY;
                 switch (_idlePose) {
                     case IdlePose::NEUTRAL:
                         _brow = 140;
                         break;
                     case IdlePose::LOOK:
                         _targetLid = 255;
-                        _targetPupilX = _targetSaccadeX;
-                        _targetPupilY = _targetSaccadeY;
                         _brow = 155;
                         break;
                     case IdlePose::HAPPY:

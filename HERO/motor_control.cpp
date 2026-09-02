@@ -34,14 +34,27 @@ void MotorControl::drive(int16_t throttle, int16_t steering) {
     setRight(right);
 }
 
+static int16_t scaleTrim(int16_t speed, uint8_t trim) {
+    if (speed == 0) return 0;
+    int32_t scaled = (int32_t)speed * constrain((int)trim, MOTOR_TRIM_MIN, MOTOR_TRIM_MAX) / 100;
+    if (scaled == 0) scaled = (speed > 0) ? 1 : -1;
+    return (int16_t)constrain(scaled, -255, 255);
+}
+
 void MotorControl::setLeft(int16_t speed) {
+    speed = scaleTrim(speed, settings.data.trimLeft);
     if (settings.data.reverseLeft) speed = -speed;
     setPin(PIN_MOTOR_L_IN1, PIN_MOTOR_L_IN2, speed);
 }
 
 void MotorControl::setRight(int16_t speed) {
+    speed = scaleTrim(speed, settings.data.trimRight);
     if (settings.data.reverseRight) speed = -speed;
     setPin(PIN_MOTOR_R_IN3, PIN_MOTOR_R_IN4, speed);
+}
+
+void MotorControl::reapply() {
+    if (_throttle != 0 || _steering != 0) drive(_throttle, _steering);
 }
 
 void MotorControl::setPin(uint8_t inA, uint8_t inB, int16_t speed) {

@@ -129,6 +129,11 @@
       <label>Motors</label>
       <label class="toggle-row"><input id="revLeft" type="checkbox"> Reverse left motor</label>
       <label class="toggle-row"><input id="revRight" type="checkbox"> Reverse right motor</label>
+      <p class="muted settings-hint">Trim a slower motor down so the rover tracks straight. 100% is full PWM.</p>
+      <label class="trim-row" for="trimLeft">Left trim <output id="trimLeftVal">100</output>%</label>
+      <input id="trimLeft" type="range" min="50" max="100" value="100" step="1">
+      <label class="trim-row" for="trimRight">Right trim <output id="trimRightVal">100</output>%</label>
+      <input id="trimRight" type="range" min="50" max="100" value="100" step="1">
       <label>Access token</label>
       <input id="setToken" type="password" placeholder="new token (optional)" autocomplete="off">
       <div class="modal-actions">

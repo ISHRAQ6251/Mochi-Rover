@@ -51,7 +51,8 @@ Smartphone-first dark UI with a light theme option (saved in the browser):
   Mood dropdown, and a Speed slider with a live value.
 - Mood popup: a white rounded card under the header with the six moods.
 - Settings modal: hotspot reminder, theme, reverse-left / reverse-right motor
-  toggles (persisted in NVS), optional new access token.
+  toggles, left/right speed trim (50-100%, persisted in NVS), optional new
+  access token.
 
 ## API
 
@@ -72,14 +73,14 @@ All control endpoints (except `/api/info`, `/api/auth`, `/stream` and
 | `/api/mood` | POST | yes | `mood` | `happy` `angry` `curious` `dead` `sleepy` `wink` `idle` |
 | `/api/message` | POST | yes | `text` | Show message; empty `text` clears |
 | `/api/flash` | POST | yes | `on` | 0/1 flashlight |
-| `/api/settings` | POST | yes | `oledAnim`, `reverseLeft`, `reverseRight` | 0/1 eyes animation and per-motor reverse |
+| `/api/settings` | POST | yes | `oledAnim`, `reverseLeft`, `reverseRight`, `trimLeft`, `trimRight` | eyes animation, per-motor reverse, and PWM trim (50-100) |
 | `/api/camera` | POST | yes | `flip` | 0/1 mirror+vflip image |
 | `/api/token` | POST | yes | `token` | Change access token (min 4 chars) |
 
 `/api/state` returns: `throttle`, `steering`, `mood`, `sleeping`,
 `flashlightOn`, `oledAnim`, `camResolution`, `camQuality`, `camFlip`,
-`reverseLeft`, `reverseRight`, `connected`, `apMode`, `ip`,
-`messageActive`, `message`.
+`reverseLeft`, `reverseRight`, `trimLeft`, `trimRight`, `connected`,
+`apMode`, `ip`, `messageActive`, `message`.
 
 ## OLED state machine
 
@@ -91,7 +92,8 @@ BOOT (1.5 s) -> CONNECTION (~6.5 s AP details) -> TEXT (persistent message)
 ```
 
 - **BOOT**: "HERO / Booting..." with an animated progress bar.
-- **CONNECTION**: `Join HERO AP`, `AP: 192.168.4.1`, password and token.
+- **CONNECTION**: `Join HERO AP`, `AP: 192.168.4.1`, password, and
+  `open 192.168.4.1`.
 - **TEXT**: compact eyes on top + a rounded text box with the wrapped message
   (up to 3 lines, ellipsized). The message persists until cleared; the ✕
   restores the full-size face and resets the sleep timer.

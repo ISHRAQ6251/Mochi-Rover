@@ -13,6 +13,10 @@ void Settings::begin() {
 
 void Settings::load() {
     readString(NVS_KEY_TOKEN, data.authToken, sizeof(data.authToken), AUTH_DEFAULT_TOKEN);
+    if (data.authToken[0] == 0) {
+        strncpy(data.authToken, AUTH_DEFAULT_TOKEN, sizeof(data.authToken) - 1);
+        data.authToken[sizeof(data.authToken) - 1] = 0;
+    }
 
     data.camResolution = prefs.getInt(NVS_KEY_RES, data.camResolution);
     data.camQuality   = prefs.getInt(NVS_KEY_QUALITY, data.camQuality);
@@ -21,6 +25,10 @@ void Settings::load() {
     data.oledAnim     = prefs.getBool(NVS_KEY_OLEDANIM, data.oledAnim);
     data.reverseLeft  = prefs.getBool(NVS_KEY_REV_L, data.reverseLeft);
     data.reverseRight = prefs.getBool(NVS_KEY_REV_R, data.reverseRight);
+    data.trimLeft     = (uint8_t)constrain(prefs.getUChar(NVS_KEY_TRIM_L, data.trimLeft),
+                                           MOTOR_TRIM_MIN, MOTOR_TRIM_MAX);
+    data.trimRight    = (uint8_t)constrain(prefs.getUChar(NVS_KEY_TRIM_R, data.trimRight),
+                                           MOTOR_TRIM_MIN, MOTOR_TRIM_MAX);
 }
 
 void Settings::save() {
@@ -32,6 +40,8 @@ void Settings::save() {
     prefs.putBool(NVS_KEY_OLEDANIM, data.oledAnim);
     prefs.putBool(NVS_KEY_REV_L, data.reverseLeft);
     prefs.putBool(NVS_KEY_REV_R, data.reverseRight);
+    prefs.putUChar(NVS_KEY_TRIM_L, data.trimLeft);
+    prefs.putUChar(NVS_KEY_TRIM_R, data.trimRight);
     prefs.end();
     prefs.begin(NVS_NAMESPACE, false);
 }
@@ -46,8 +56,14 @@ void Settings::reset() {
 }
 
 void Settings::setMotorReverse(bool left, bool right) {
-    data.reverseLeft = left;
-    data.reverseRight = right;
+    setMotorCal(left, right, data.trimLeft, data.trimRight);
+}
+
+void Settings::setMotorCal(bool reverseLeft, bool reverseRight, uint8_t trimLeft, uint8_t trimRight) {
+    data.reverseLeft = reverseLeft;
+    data.reverseRight = reverseRight;
+    data.trimLeft = (uint8_t)constrain(trimLeft, MOTOR_TRIM_MIN, MOTOR_TRIM_MAX);
+    data.trimRight = (uint8_t)constrain(trimRight, MOTOR_TRIM_MIN, MOTOR_TRIM_MAX);
     save();
 }
 

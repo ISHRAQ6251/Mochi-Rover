@@ -62,6 +62,8 @@ static String stateJson() {
     s += "\"camFlip\":" + String(settings.data.camFlip ? "true" : "false") + ",";
     s += "\"reverseLeft\":" + String(settings.data.reverseLeft ? "true" : "false") + ",";
     s += "\"reverseRight\":" + String(settings.data.reverseRight ? "true" : "false") + ",";
+    s += "\"trimLeft\":" + String(settings.data.trimLeft) + ",";
+    s += "\"trimRight\":" + String(settings.data.trimRight) + ",";
     s += "\"connected\":true,";
     s += "\"apMode\":true,";
     s += "\"ip\":\"" + wifiHelper.ip() + "\",";
@@ -172,14 +174,24 @@ void WebServerMgr::begin() {
             settings.setOledAnim(request->getParam("oledAnim", true)->value() == "1");
             eyes.setAnimEnabled(settings.data.oledAnim);
         }
-        if (request->hasParam("reverseLeft", true) || request->hasParam("reverseRight", true)) {
+        if (request->hasParam("reverseLeft", true) || request->hasParam("reverseRight", true) ||
+            request->hasParam("trimLeft", true) || request->hasParam("trimRight", true)) {
             bool left = request->hasParam("reverseLeft", true)
                 ? request->getParam("reverseLeft", true)->value() == "1"
                 : settings.data.reverseLeft;
             bool right = request->hasParam("reverseRight", true)
                 ? request->getParam("reverseRight", true)->value() == "1"
                 : settings.data.reverseRight;
-            settings.setMotorReverse(left, right);
+            uint8_t trimL = request->hasParam("trimLeft", true)
+                ? (uint8_t)constrain(request->getParam("trimLeft", true)->value().toInt(),
+                                     MOTOR_TRIM_MIN, MOTOR_TRIM_MAX)
+                : settings.data.trimLeft;
+            uint8_t trimR = request->hasParam("trimRight", true)
+                ? (uint8_t)constrain(request->getParam("trimRight", true)->value().toInt(),
+                                     MOTOR_TRIM_MIN, MOTOR_TRIM_MAX)
+                : settings.data.trimRight;
+            settings.setMotorCal(left, right, trimL, trimR);
+            motors.reapply();
         }
         request->send(200, "application/json", "{\"ok\":true}");
     });
