@@ -137,6 +137,10 @@ HERO/               Arduino sketch
   FUNCTIONALITY.md        API reference + OLED/face behaviour
 ```
 
+## License
+
+This project is licensed under the [MIT License](LICENSE).
+
 ## Repository state
 
 `PROJECT_STATE.md` records the pin/decision/checklist history. The old
