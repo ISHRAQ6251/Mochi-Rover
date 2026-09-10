@@ -78,6 +78,24 @@ static size_t streamFiller(uint8_t* buf, size_t maxLen, size_t index) {
 }
 
 bool CameraServer::begin() {
+    // The blanket esp_log_level_set("*", ESP_LOG_ERROR) in HERO.ino hides the
+    // one line that actually explains a 0x106/"Detected camera not
+    // supported" failure: sensor.c logs the mismatched PID it read over SCCB
+    // (e.g. "ov5640: Mismatch PID=0x0") at ESP_LOG_INFO, not ESP_LOG_ERROR.
+    // Turn that back on just for the camera/SCCB tags so the real cause
+    // (no ACK / wrong PID / bus glitch) shows up on the serial console.
+    esp_log_level_set("camera", ESP_LOG_INFO);
+    esp_log_level_set("sccb", ESP_LOG_INFO);
+    esp_log_level_set("ov5640", ESP_LOG_INFO);
+
+    // Some N16R8 clones bring SIOD/SIOC (GPIO4/5) out without onboard SCCB
+    // pull-ups. esp32-camera's SCCB driver enables internal pull-ups itself
+    // on newer IDF versions, but doing it explicitly first costs nothing and
+    // fixes probes that otherwise read back PID=0x00/0xff (-> "not
+    // supported") on boards that rely on the internal pulls.
+    pinMode(CAM_PIN_SIOD, INPUT_PULLUP);
+    pinMode(CAM_PIN_SIOC, INPUT_PULLUP);
+
     camera_config_t cfg;
     memset(&cfg, 0, sizeof(cfg));
     // The esp32-camera driver configures its XCLK clock through the native
@@ -113,7 +131,24 @@ bool CameraServer::begin() {
 
     Serial.println("camera: init...");
     Serial.flush();
-    esp_err_t err = esp_camera_init(&cfg);
+
+    // Retry a few times: ESP_ERR_NOT_SUPPORTED (0x106) here almost always
+    // means the SCCB probe read back a garbage/mismatched PID, not that the
+    // sensor is genuinely unsupported. That's most often a transient issue
+    // (XCLK not settled yet, SCCB bus glitch right as the softAP radio keys
+    // up) and a clean re-probe after a short delay succeeds. esp_camera_init
+    // does not clean up its own partial state on failure, so it must be
+    // explicitly deinited before trying again.
+    const int MAX_ATTEMPTS = 3;
+    esp_err_t err = ESP_FAIL;
+    for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        err = esp_camera_init(&cfg);
+        if (err == ESP_OK) break;
+        Serial.printf("camera: init attempt %d/%d failed (0x%x)\n",
+                      attempt, MAX_ATTEMPTS, (unsigned)err);
+        esp_camera_deinit();
+        delay(250);
+    }
     if (err != ESP_OK) {
         Serial.printf("camera: init failed (0x%x)\n", (unsigned)err);
         return false;
