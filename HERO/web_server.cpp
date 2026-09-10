@@ -207,18 +207,6 @@ void WebServerMgr::begin() {
         request->send(400, "application/json", "{\"ok\":false,\"error\":\"bad param\"}");
     });
 
-    // Diagnostic only: pulses each of the 4 driver pins in turn so a dead
-    // motor line (wiring or a failed LEDC attach - see Serial log) can be
-    // pinned down to one specific pin instead of guessed at. Not part of the
-    // normal cockpit UI; call it directly, e.g.
-    //   curl -X POST "http://192.168.4.1/api/motortest?token=hero"
-    _server.on("/api/motortest", HTTP_POST, [](AsyncWebServerRequest* request) {
-        if (!authorized(request)) return unauthorized(request);
-        motors.stop();
-        motors.selfTest();
-        request->send(200, "application/json", "{\"ok\":true}");
-    });
-
     _server.on("/api/token", HTTP_POST, [](AsyncWebServerRequest* request) {
         if (!authorized(request)) return unauthorized(request);
         String t = request->hasParam("token", true) ? request->getParam("token", true)->value() : "";
@@ -230,14 +218,5 @@ void WebServerMgr::begin() {
         }
     });
 
-    // NOTE: if the board resets right here with
-    //   assert failed: tcp_alloc .../lwip/src/core/tcp.c:185x
-    //   (Required to lock TCPIP core functionality!)
-    // it is NOT a bug in this file. It means the sketch is linked against
-    // the old me-no-dev AsyncTCP/ESPAsyncWebServer, which opens the listening
-    // socket without taking LwIP's TCPIP core lock. Recent arduino-esp32
-    // cores (3.1.0+, IDF 5.x) assert on that. Fix by installing the
-    // maintained forks instead (ESP32Async/AsyncTCP +
-    // ESP32Async/ESPAsyncWebServer) -- see README.md "Build & flash".
     _server.begin();
 }
