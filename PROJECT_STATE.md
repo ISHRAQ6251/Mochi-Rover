@@ -101,7 +101,8 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
 - [x] User confirmed board = cheap bare ESP32-S3-CAM clone (not Waveshare AIoT).
 - [x] Camera OV5640 pinout locked via two independent GitHub projects
       (jzsalinas/exp-esp32s3 + sorn-AI/ESP32_WEB_Camera) — identical pinout.
-- [x] Free-GPIO map derived; motors on 1/14/21/42, OLED I2C on 40/41, LED on 2.
+- [x] Free-GPIO map derived; motors on 1/14/21/42 (later L_IN1 moved to 47),
+      OLED I2C on 40/41, LED on 2.
 - [x] Built all firmware modules (config, settings, motor_control, hero_eyes
       6 moods, display_manager, wifi_helper, camera_server, web_server, web_ui,
       embed tool, main sketch).
@@ -109,7 +110,7 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
       (1105 KB / 84% of 1.25 MB app partition).
 - [x] LEDC conflict resolved: camera XCLK moved to native-IDF channel 5/timer 2
       (invisible to the Arduino LEDC wrapper); motors pinned to Arduino LEDC
-      channels 1-4 on timer 0 via `ledcAttachChannel`.
+      channels 0-3 on timers 0-1 via `ledcAttachChannel`.
 - [x] README.md + FUNCTIONALITY.md written (wiring, build, API, face engine,
       power note about separate motor supply).
 - [x] ESPAsyncWebServer 3.1.0 patched for mbedTLS (non-`_ret` MD5 calls);
@@ -174,6 +175,41 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
       ACK and skipped instead of hanging. `Serial.begin(115200)` plus boot
       breadcrumbs added so the USB monitor shows sketch logs, not only the ROM
       dump. Motors do not need to be wired for the face / web UI to run.
+
+- [x] **Motor reverse fix (2026-09-11)**: one motor would not reverse. The
+      Arduino core maps LEDC `channel` to `timer = (channel / 2) % 4`, so the
+      old motor channels `1-4` put the fourth input (GPIO42) on timer 2 - the
+      same timer the camera XCLK uses (`LEDC_CHANNEL_5` / `LEDC_TIMER_2`).
+      Motors were moved to channels `0-3` (timers 0-1) so timer 2 stays
+      exclusive to the camera. This removed a real latent timer conflict, but
+      turned out **not** to be the cause of the missing direction (see below).
+- [x] **Motor polarity default (2026-09-11)**: on this build both motors are
+      wired with opposite polarity, so `reverseLeft` / `reverseRight` now
+      default to `true` in `settings.h` (forward works on a fresh NVS with no
+      UI changes). Runtime values still come from NVS; erase NVS / Settings
+      reset to pick up the new default.
+- [x] **LEDC channel move verified (2026-09-11)**: pulled the arduino-esp32
+      3.0.7 `esp32-hal-ledc.c` source to confirm `timer = (channel / 2) % 4`.
+      Channels `0-3` map to timers 0/1, so the motor set no longer touches the
+      camera's timer 2. This removes a latent conflict but did **not** fix the
+      user's symptom, so it is not the root cause.
+- [x] **Serial-free motor pin test (2026-09-11)**: the user cannot use the USB
+      serial monitor on battery (serial drops when the pack is connected), so a
+      WiFi test was added instead. `GET /api/pintest?token=hero&pin=N&speed=200`
+      drives exactly one motor input for `MOTOR_TEST_MS` (0.6 s) and returns the
+      PWM `duty` read back from the pin, isolating firmware/attach failures
+      (`duty=0`) from wiring/DRV8833 faults (`duty=200`, no wheel motion).
+- [x] **Faulty DRV8833 identified (2026-09-11)**: the WiFi `/api/pintest` was
+      run on pins 0-3; pin 0 (`L_IN1`) produced no wheel movement while pins
+      1-3 (GPIO14/21/42) did. The left motor's IN1 wire was moved from GPIO1 to
+      the free header pin **GPIO47** (`PIN_MOTOR_L_IN1 47`) to rule out the
+      ESP32 pin, but the symptom persisted. Swapping the two left-channel input
+      wires showed the dead path follows the **DRV8833 AIN1/OUT1 half-bridge**,
+      not the ESP32 GPIO - so GPIO1 was exonerated and the driver is faulty.
+      The user is replacing the DRV8833. The code keeps `L_IN1` on GPIO47 (the
+      pin validated during bring-up and already wired); GPIO1 is now unused.
+      If GPIO47 is not broken out on a given board, use GPIO38/39/48 instead.
+
 
 ## In Progress
 

@@ -111,7 +111,7 @@ ESP32-S3-CAM module header pins.
 | From (ESP32-S3-CAM) | GPIO | To |
 | ------------------- | ---- | -- |
 | Camera ribbon | - | Already attached via FPC socket (no user wiring) |
-| IN1 | 1 | DRV8833 **AIN1** |
+| IN1 | 47 | DRV8833 **AIN1** |
 | IN2 | 14 | DRV8833 **AIN2** |
 | IN3 | 21 | DRV8833 **BIN1** |
 | IN4 | 42 | DRV8833 **BIN2** |
@@ -333,6 +333,8 @@ board and wait a few seconds, then scan for Wi-Fi again.
 | No image in the video panel, CAM dot red | Check the camera ribbon is seated; verify GPIO settings match your board; try reducing XCLK to 10 MHz (see camera_server.cpp) |
 | Motors do not spin | Check DRV8833 power (VM/GND), `nSLEEP` tied to 3.3 V, and IN wires; try 100 on the speed slider |
 | One motor spins backwards | Settings > Reverse left/right motor (or swap that motor's two wires) |
+| A wheel turns one way but **never** the other (e.g. reverse and one turn only move the other wheel) | One motor input is not switching. Test each input over Wi-Fi without the serial monitor: open `http://192.168.4.1/api/pintest?token=hero&pin=0&speed=200` in the phone browser and cycle `pin` = 0,1,2,3. `pin` maps to 0=L_IN1/GPIO47, 1=L_IN2/GPIO14, 2=R_IN3/GPIO21, 3=R_IN4/GPIO42. Each call nudges one wheel for ~0.6 s and replies with the PWM `duty` read back from the pin. `duty:0` means the pin never attached in firmware (reflash / pin conflict); `duty:200` but no motion means a bad jumper, DRV8833 channel, or GPIO. |
+| Above test shows an input that never switches | First swap the two input wires of that motor channel at the DRV8833 (e.g. AIN1/AIN2) and re-test. If the dead direction follows the driver input rather than the ESP32 pin, the DRV8833 half-bridge is faulty - replace the driver. If instead the fault follows the ESP32 pin, move that one IN wire to a free header GPIO and update the matching `PIN_MOTOR_*` in `config.h`. Recommended free pins: **GPIO47** (alt GPIO38/39/48). Avoid GPIO0/3 (strapping), 19/20 (USB), 26-37 (flash/OPI PSRAM), 43/44 (UART) and 45/46 (strapping). On this build the test first pointed at `L_IN1`, but the wire-swap proved GPIO1 was fine and the DRV8833 was faulty; `L_IN1` was left on GPIO47 (`PIN_MOTOR_L_IN1 47`). |
 | Motors spin but the rover turns wrong way | Reverse both motors in Settings, or swap left/right channels (AO/BO) |
 | Rover drifts left/right when going straight | Settings > lower Left/Right trim on the faster motor until it tracks straight |
 | Can't find the rover Wi-Fi | Stay near the board, wait ~10 s after power-on, join **HERO** / **hero1234** |

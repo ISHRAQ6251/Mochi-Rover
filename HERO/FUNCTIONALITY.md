@@ -70,6 +70,7 @@ All control endpoints (except `/api/info`, `/api/auth`, `/stream` and
 | `/api/state` | GET | yes | - | Full state JSON (below) |
 | `/api/drive` | POST | yes | `throttle`, `steering` | Drive, -255..255. While a button is held the UI repeats this every 300 ms as a keep-alive; the firmware coasts the motors ~1.5 s after the last drive/stop command (`DRIVE_WATCHDOG_MS` in `config.h`) |
 | `/api/stop` | POST | yes | - | Coast both motors |
+| `/api/pintest` | GET/POST | yes | `pin` (0-3), `speed` (-255..255, default 200) | Bring-up test: drives a single motor input directly for ~0.6 s (`MOTOR_TEST_MS`), bypassing mixing/reverse/trim/watchdog. Reply `duty` is the PWM read back: non-zero means the pin is attached and driven. Pin map: 0=L_IN1/GPIO47, 1=L_IN2/GPIO14, 2=R_IN3/GPIO21, 3=R_IN4/GPIO42. Example: `/api/pintest?token=hero&pin=1&speed=200` |
 | `/api/mood` | POST | yes | `mood` | `happy` `angry` `curious` `dead` `sleepy` `wink` `idle` |
 | `/api/message` | POST | yes | `text` | Show message; empty `text` clears |
 | `/api/flash` | POST | yes | `on` | 0/1 flashlight |
@@ -114,8 +115,10 @@ start and gaze in the steering direction.
 - Default stream: SVGA (800x600), JPEG quality 12, 2 PSRAM frame buffers,
   `CAMERA_GRAB_LATEST`, XCLK 20 MHz.
 - The LEDC channels are deliberately split: motor PWM uses the Arduino LEDC
-  wrapper (channels 1-4, timer 0) while the camera XCLK uses the native IDF LEDC
-  driver on channel 5 / timer 2, so they can never collide.
+  wrapper (channels 0-3, timers 0-1) while the camera XCLK uses the native IDF
+  LEDC driver on channel 5 / timer 2, so they can never collide. Channels 1-4
+  would place the fourth motor on timer 2 (the camera timer) and break that
+  motor's reverse.
 - If the stream shows purple flicker or drops on a long ribbon, lower
   `cfg.xclk_freq_hz` from 20 MHz to 10 MHz in `camera_server.cpp`.
 

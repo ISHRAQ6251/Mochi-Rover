@@ -23,6 +23,12 @@ static void unauthorized(AsyncWebServerRequest* request) {
     request->send(401, "application/json", "{\"ok\":false,\"error\":\"unauthorized\"}");
 }
 
+static int queryInt(AsyncWebServerRequest* request, const char* name, int fallback) {
+    if (request->hasParam(name, true)) return request->getParam(name, true)->value().toInt();
+    if (request->hasParam(name)) return request->getParam(name)->value().toInt();
+    return fallback;
+}
+
 static HeroMood parseMood(const String& s) {
     if (s == "happy") return HeroMood::HAPPY;
     if (s == "angry") return HeroMood::ANGRY;
@@ -71,6 +77,24 @@ static String stateJson() {
     s += "\"message\":\"" + jsonEscape(displayMgr.message()) + "\"";
     s += "}";
     return s;
+}
+
+// Serial-free bring-up test: GET /api/pintest?token=hero&pin=1&speed=200
+// drives one motor input (0=L_IN1/GPIO47, 1=L_IN2/GPIO14, 2=R_IN3/GPIO21,
+// 3=R_IN4/GPIO42) for MOTOR_TEST_MS. `duty` in the reply is the PWM value read
+// back from the pin: a non-zero value means the pin is attached and driven, so
+// a wheel that still does not turn points at wiring/DRV8833 rather than code.
+static void handlePinTest(AsyncWebServerRequest* request) {
+    if (!authorized(request)) return unauthorized(request);
+    int index = queryInt(request, "pin", -1);
+    int value = queryInt(request, "speed", 200);
+    if (index < 0 || index > 3) {
+        request->send(400, "application/json", "{\"ok\":false,\"error\":\"pin must be 0..3\"}");
+        return;
+    }
+    uint32_t duty = motors.testPin((uint8_t)index, (int16_t)value);
+    String s = "{\"ok\":true,\"pin\":" + String(index) + ",\"duty\":" + String(duty) + "}";
+    request->send(200, "application/json", s);
 }
 
 void WebServerMgr::begin() {
@@ -139,6 +163,11 @@ void WebServerMgr::begin() {
         displayMgr.notifyActivity();
         request->send(200, "application/json", "{\"ok\":true}");
     });
+
+    // Bring-up motor test, invokable from a phone browser (serial unusable on
+    // battery): /api/pintest?token=hero&pin=1&speed=200
+    _server.on("/api/pintest", HTTP_GET, handlePinTest);
+    _server.on("/api/pintest", HTTP_POST, handlePinTest);
 
     _server.on("/api/mood", HTTP_POST, [](AsyncWebServerRequest* request) {
         if (!authorized(request)) return unauthorized(request);

@@ -83,7 +83,7 @@ bool CameraServer::begin() {
     // The esp32-camera driver configures its XCLK clock through the native
     // IDF LEDC driver (invisible to the Arduino LEDC wrapper). Reserve a
     // dedicated channel/timer so it can never collide with the motor PWM,
-    // which the Arduino API allocates starting at timer 0 / channels 1..4.
+    // which the Arduino API allocates on channels 0..3 (timers 0..1).
     cfg.ledc_channel = LEDC_CHANNEL_5;
     cfg.ledc_timer = LEDC_TIMER_2;
     cfg.pin_d0 = CAM_PIN_D0;

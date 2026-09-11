@@ -11,8 +11,8 @@ struct RoverSettings {
 
     bool flashlightOn = false;
     bool oledAnim = true;
-    bool reverseLeft = false;
-    bool reverseRight = false;
+    bool reverseLeft = true;   // this build's left motor is wired inverted
+    bool reverseRight = true;  // this build's right motor is wired inverted
     uint8_t trimLeft = 100;
     uint8_t trimRight = 100;
 };

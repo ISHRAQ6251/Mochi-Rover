@@ -29,9 +29,15 @@
 #define CAM_PIN_PCLK    13
 
 // DRV8833 dual motor driver
-//   Motor A (left):  IN1 = GPIO1,  IN2 = GPIO14
+//   Motor A (left):  IN1 = GPIO47, IN2 = GPIO14
 //   Motor B (right): IN3 = GPIO21, IN4 = GPIO42
-#define PIN_MOTOR_L_IN1  1
+// IN1 was originally GPIO1. During bring-up IN1 showed no motor movement, so
+// it was moved to GPIO47 to rule out the ESP32 pin; a wire-swap then showed the
+// fault was the DRV8833 AIN1 half-bridge, not the GPIO, and the driver was
+// replaced. GPIO47 is kept because it is validated and already wired (GPIO1 is
+// now unused). If GPIO47 is not broken out on your header, use another free pin
+// (GPIO38/39/48) and keep this define in sync with the wire.
+#define PIN_MOTOR_L_IN1  47
 #define PIN_MOTOR_L_IN2  14
 #define PIN_MOTOR_R_IN3  21
 #define PIN_MOTOR_R_IN4  42
@@ -95,3 +101,4 @@
 #define SLEEP_TIMEOUT_MS  60000UL     // 60 s inactivity before eye sleep mode
 #define DRIVE_WATCHDOG_MS 1500UL      // stop motors if no drive/stop cmd in this window
 #define MOOD_OVERRIDE_MS  4000UL      // mood override lasts ~4 s, then idle
+#define MOTOR_TEST_MS     600UL       // auto-coast time for the per-pin bring-up test
