@@ -10,6 +10,8 @@
   --ok: #34d399;
   --radius: 16px;
   --pad: 10px;
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+  color-scheme: dark;
 }
 
 html.light {
@@ -21,6 +23,8 @@ html.light {
   --muted: #5b6272;
   --accent: #0072e3;
   --danger: #d92c3e;
+  --shadow: 0 8px 30px rgba(20, 30, 60, 0.16);
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -34,11 +38,24 @@ html, body {
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   user-select: none;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 .hidden { display: none !important; }
 .muted { color: var(--muted); }
 .err { color: var(--danger); min-height: 1.2em; font-size: 0.85rem; }
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 button {
   font: inherit;
@@ -47,9 +64,12 @@ button {
   background: var(--panel);
   border-radius: 10px;
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease,
+              border-color 0.15s ease, transform 0.08s ease, box-shadow 0.15s ease;
 }
 button:active { transform: scale(0.96); }
 button.primary { background: var(--accent); color: #fff; border-color: transparent; }
+button:disabled { opacity: 0.55; cursor: default; }
 
 input, select {
   font: inherit;
@@ -59,8 +79,21 @@ input, select {
   border-radius: 10px;
   padding: 10px;
   width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-input:focus, select:focus { outline: 2px solid var(--accent); }
+input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+:where(button, input, select, a):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) {
+  button:hover { border-color: var(--accent); }
+  button.primary:hover { box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3); }
+  .mood-opt:hover { background: rgba(127, 127, 127, 0.14); }
+}
+
 label { display: block; font-size: 0.78rem; color: var(--muted); margin: 12px 0 5px; }
 
 svg {
@@ -111,6 +144,7 @@ svg {
   border-radius: var(--radius);
   padding: 28px 24px;
   text-align: center;
+  box-shadow: var(--shadow);
 }
 .gate-card .logo-mark { margin: 0 auto 8px; }
 .gate-card h1 { margin: 8px 0 4px; font-size: 1.6rem; letter-spacing: 0.5px; }
@@ -176,6 +210,7 @@ svg {
   overflow: hidden;
   background: #000;
   border: 1px solid var(--border);
+  box-shadow: var(--shadow);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -188,6 +223,27 @@ svg {
   object-position: center;
   background: #000;
 }
+.video-offline {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.85rem;
+  background: #000;
+}
+.spinner {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  border-top-color: var(--accent);
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
 .video-actions {
   position: absolute;
   right: 10px;
@@ -298,7 +354,8 @@ svg {
 .msg-row { display: flex; gap: 8px; }
 .msg-row input { flex: 1; min-width: 0; padding: 10px; }
 .msg-row button { padding: 10px 14px; }
-.msg-row .ghost { color: var(--muted); }
+.msg-row .ghost { color: var(--muted); padding: 10px; display: flex; align-items: center; }
+.msg-row .ghost svg { width: 18px; height: 18px; }
 
 .mood-popup {
   position: fixed;
@@ -347,6 +404,7 @@ svg {
   border: 1px solid var(--border);
   border-radius: var(--radius) var(--radius) 0 0;
   padding: 18px 20px calc(20px + env(safe-area-inset-bottom));
+  box-shadow: var(--shadow);
 }
 .modal-head {
   display: flex;
@@ -388,4 +446,12 @@ svg {
   .modal-card { border-radius: var(--radius); margin-bottom: 24px; }
   #app { max-width: 480px; left: 50%; right: auto; transform: translateX(-50%); }
   #topbar { max-width: 480px; left: 50%; right: auto; width: 480px; transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }

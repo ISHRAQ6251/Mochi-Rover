@@ -47,8 +47,10 @@ void setup() {
     }
 
     wifiHelper.begin();      // SoftAP HERO / hero1234 at 192.168.4.1
-    Serial.printf("wifi AP ip=%s\n", wifiHelper.ip().c_str());
-    displayMgr.setConnected(true, true, wifiHelper.ip().c_str());
+    char ip[16];
+    wifiHelper.ip(ip, sizeof(ip));
+    Serial.printf("wifi AP ip=%s\n", ip);
+    displayMgr.setConnected(ip);
 
     if (cameraServer.begin()) {
         Serial.println("camera ok");
@@ -58,9 +60,6 @@ void setup() {
 
     webServerMgr.begin();    // REST API + web UI + MJPEG stream
     Serial.println("web server ok");
-
-    // Refresh OLED connection state now that networking is settled.
-    displayMgr.setConnected(true, true, wifiHelper.ip().c_str());
     Serial.println("HERO ready");
 }
 

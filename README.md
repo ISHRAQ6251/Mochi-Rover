@@ -57,7 +57,7 @@ boot to help you spot a mismatch.
 | OV5640 XCLK / PCLK | 15 / 13 | camera FPC |
 | OV5640 VSYNC / HREF | 6 / 7 | camera FPC |
 | OV5640 SIOD / SIOC (SCCB) | 4 / 5 | camera FPC |
-| DRV8833 IN1 / IN2 (motor A) | 1 / 14 | DRV8833 AIN1/AIN2 |
+| DRV8833 IN1 / IN2 (motor A) | 47 / 14 | DRV8833 AIN1/AIN2 |
 | DRV8833 IN3 / IN4 (motor B) | 21 / 42 | DRV8833 BIN1/BIN2 |
 | OLED SDA / SCL | 40 / 41 | SH1106 SDA/SCL (not 35/36 — those are PSRAM) |
 | Flashlight LED | 2 | onboard LED (or external LED + resistor) |
@@ -68,18 +68,29 @@ pin-avoidance list are in the [User Manual](USER_MANUAL.md).
 ## Build & flash
 
 Requirements: [arduino-cli](https://arduino.github.io/arduino-cli/) with the
-`esp32:esp32` core (3.x) and these libraries:
+`esp32:esp32` core (3.3.11 or later 3.x) and these Library Manager packages:
 
-- ESPAsyncWebServer (3.x) + AsyncTCP
-- Adafruit GFX Library, Adafruit SH110X (+ Adafruit BusIO)
-- The ESP32 core bundles the precompiled `esp32-camera` driver, so no separate
-  camera library install is required.
+- **ESP Async WebServer** 3.12.1 (maintainer ESP32Async) + **Async TCP** 3.5.0
+  (maintainer ESP32Async)
+- **Adafruit GFX Library** 1.12.6, **Adafruit SH110X** 2.1.15, **Adafruit BusIO**
+  1.17.4 (maintainer Adafruit)
+- The ESP32 core bundles the precompiled `esp32-camera` driver plus
+  Preferences, WiFi, DNSServer, ESPmDNS and Wire, so none of those need a
+  separate install.
+
+Search Library Manager by the exact names above (spaces included). Do **not**
+install the similarly named **ESPAsyncWebServer** (lacamera / ESPHome, 3.1.0)
+or **AsyncTCP** (dvarrel, 1.1.4): those are the unmaintained forks that fail
+to compile against current esp32-core mbedTLS.
 
 ```bash
 # install core + libs (one time)
-arduino-cli core install esp32:esp32
-arduino-cli lib install "ESPAsyncWebServer" "AsyncTCP" \
-  "Adafruit GFX Library" "Adafruit SH110X" "Adafruit BusIO"
+arduino-cli config add board_manager.additional_urls \
+  https://espressif.github.io/arduino-esp32/package_esp32_index.json
+arduino-cli core update-index
+arduino-cli core install esp32:esp32@3.3.11
+arduino-cli lib install "ESP Async WebServer@3.12.1" "Async TCP@3.5.0" \
+  "Adafruit GFX Library@1.12.6" "Adafruit SH110X@2.1.15" "Adafruit BusIO@1.17.4"
 
 # compile
 arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi HERO
@@ -92,10 +103,6 @@ arduino-cli upload -p /dev/ttyACM0 \
 `FlashSize=16M` and `PSRAM=opi` are important: the N16R8 has 16 MB flash and
 8 MB OPI PSRAM (required for camera buffers). Detailed upload steps, boot-mode
 handling and troubleshooting are in the [User Manual](USER_MANUAL.md).
-
-> **Known mbedTLS issue**: if compilation fails with
-> `mbedtls_md5_update_ret ... not declared`, remove the `_ret` suffix from the
-> MD5 calls in `~/Arduino/libraries/ESPAsyncWebServer/src/WebAuthentication.cpp`.
 
 ## Quick usage
 

@@ -42,21 +42,16 @@ void Settings::save() {
     prefs.putBool(NVS_KEY_REV_R, data.reverseRight);
     prefs.putUChar(NVS_KEY_TRIM_L, data.trimLeft);
     prefs.putUChar(NVS_KEY_TRIM_R, data.trimRight);
-    prefs.end();
-    prefs.begin(NVS_NAMESPACE, false);
+    // Preferences writes commit immediately; the handle is opened once in
+    // begin() and stays open. Closing/reopening here only added latency and
+    // extra flash operations to every setting change.
 }
 
 void Settings::reset() {
     prefs.clear();
-    prefs.end();
-    prefs.begin(NVS_NAMESPACE, false);
     data = RoverSettings();
     strncpy(data.authToken, AUTH_DEFAULT_TOKEN, sizeof(data.authToken) - 1);
     save();
-}
-
-void Settings::setMotorReverse(bool left, bool right) {
-    setMotorCal(left, right, data.trimLeft, data.trimRight);
 }
 
 void Settings::setMotorCal(bool reverseLeft, bool reverseRight, uint8_t trimLeft, uint8_t trimRight) {
@@ -70,12 +65,6 @@ void Settings::setMotorCal(bool reverseLeft, bool reverseRight, uint8_t trimLeft
 void Settings::setToken(const char* token) {
     strncpy(data.authToken, token, sizeof(data.authToken) - 1);
     data.authToken[sizeof(data.authToken) - 1] = 0;
-    save();
-}
-
-void Settings::setCamera(int resolution, int quality) {
-    data.camResolution = resolution;
-    data.camQuality = quality;
     save();
 }
 

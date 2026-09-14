@@ -24,7 +24,7 @@ public:
     void clearMessage();
     bool messageActive() const { return _message[0] != 0; }
     const char* message() const { return _message; }
-    void setConnected(bool connected, bool apMode, const char* ip);
+    void setConnected(const char* ip);
     void notifyActivity();       // any user input resets the sleep timer
 
     bool sleeping() const { return _sleeping; }
@@ -45,13 +45,10 @@ private:
     uint32_t _lastActivity = 0;
     uint32_t _lastPush = 0;
 
-    bool _connected = false;
-    bool _apMode = false;
     char _ip[24] = "0.0.0.0";
 
     char _message[64] = {0};
 
-    HeroMood _mood = HeroMood::IDLE;
     bool _sleeping = false;
     bool _present = false;
 };

@@ -2,6 +2,7 @@
 #include "config.h"
 #include "settings.h"
 #include <esp_camera.h>
+#include <memory>
 
 CameraServer cameraServer;
 
@@ -11,9 +12,15 @@ static const size_t STREAM_HEADER_LEN = sizeof(STREAM_BOUNDARY) - 1;
 static const char STREAM_TRAILER[] = "\r\n";
 static const size_t STREAM_TRAILER_LEN = sizeof(STREAM_TRAILER) - 1;
 
-// Incremental MJPEG packetizer used by the async chunked stream filler.
-static class StreamPacketizer {
+// Incremental MJPEG packetizer. One instance per connected stream client:
+// a shared singleton corrupts its cursor and drops frame buffers as soon as a
+// second phone opens /stream. Held in a shared_ptr so the filler and the
+// disconnect callback co-own it safely; the destructor returns any in-flight
+// frame buffer if the client leaves mid-frame.
+class StreamPacketizer {
 public:
+    ~StreamPacketizer() { reset(); }
+
     size_t fill(uint8_t* buf, size_t maxLen, size_t index) {
         if (index == 0) {
             reset();
@@ -71,11 +78,7 @@ private:
     camera_fb_t* _fb = nullptr;
     size_t _written = 0;
     size_t _framePos = 0;
-} streamPacketizer;
-
-static size_t streamFiller(uint8_t* buf, size_t maxLen, size_t index) {
-    return streamPacketizer.fill(buf, maxLen, index);
-}
+};
 
 bool CameraServer::begin() {
     camera_config_t cfg;
@@ -196,10 +199,17 @@ static void setupCapture(AsyncWebServer& server) {
 
 void CameraServer::setupHandlers(AsyncWebServer& server) {
     server.on("/stream", HTTP_GET, [](AsyncWebServerRequest* request) {
-        request->onDisconnect([]() { streamPacketizer.reset(); });
-        AsyncWebServerResponse* resp =
-            request->beginChunkedResponse("multipart/x-mixed-replace; boundary=frame",
-                                          streamFiller);
+        // Each stream gets its own packetizer so multiple phones can watch
+        // simultaneously without clobbering a shared cursor. The shared_ptr is
+        // co-owned by the filler and the disconnect hook, so the packetizer
+        // (and any in-flight frame buffer) is torn down exactly once.
+        auto pkt = std::make_shared<StreamPacketizer>();
+        request->onDisconnect([pkt]() { pkt->reset(); });
+        AsyncWebServerResponse* resp = request->beginChunkedResponse(
+            "multipart/x-mixed-replace; boundary=frame",
+            [pkt](uint8_t* buf, size_t maxLen, size_t index) {
+                return pkt->fill(buf, maxLen, index);
+            });
         resp->addHeader("Cache-Control", "no-store");
         request->send(resp);
     });

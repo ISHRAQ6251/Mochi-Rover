@@ -39,44 +39,51 @@ static HeroMood parseMood(const String& s) {
     return HeroMood::IDLE;
 }
 
-static String jsonEscape(const char* s) {
-    String out;
+// Escapes s into dst (quotes/backslashes preserved, control chars -> space).
+// Bounded write, no heap: /api/state is polled by every client on a timer.
+static void jsonEscape(char* dst, size_t len, const char* s) {
+    if (!dst || len == 0) return;
+    size_t o = 0;
     for (const char* p = s; p && *p; p++) {
-        if (*p == '"' || *p == '\\') {
-            out += '\\';
-            out += *p;
-        } else if (*p < 0x20) {
-            out += ' ';
-        } else {
-            out += *p;
+        char c = *p;
+        if (c == '"' || c == '\\') {
+            if (o + 2 >= len) break;
+            dst[o++] = '\\';
+        } else if (c < 0x20) {
+            c = ' ';
         }
+        if (o + 1 >= len) break;
+        dst[o++] = c;
     }
-    return out;
+    dst[o] = 0;
 }
 
 static String stateJson() {
-    String s = "{";
-    s += "\"ok\":true,";
-    s += "\"throttle\":" + String(motors.throttle()) + ",";
-    s += "\"steering\":" + String(motors.steering()) + ",";
-    s += "\"mood\":\"" + String(eyes.moodName()) + "\",";
-    s += "\"sleeping\":" + String(displayMgr.sleeping() ? "true" : "false") + ",";
-    s += "\"flashlightOn\":" + String(settings.data.flashlightOn ? "true" : "false") + ",";
-    s += "\"oledAnim\":" + String(settings.data.oledAnim ? "true" : "false") + ",";
-    s += "\"camResolution\":" + String(settings.data.camResolution) + ",";
-    s += "\"camQuality\":" + String(settings.data.camQuality) + ",";
-    s += "\"camFlip\":" + String(settings.data.camFlip ? "true" : "false") + ",";
-    s += "\"reverseLeft\":" + String(settings.data.reverseLeft ? "true" : "false") + ",";
-    s += "\"reverseRight\":" + String(settings.data.reverseRight ? "true" : "false") + ",";
-    s += "\"trimLeft\":" + String(settings.data.trimLeft) + ",";
-    s += "\"trimRight\":" + String(settings.data.trimRight) + ",";
-    s += "\"connected\":true,";
-    s += "\"apMode\":true,";
-    s += "\"ip\":\"" + wifiHelper.ip() + "\",";
-    s += "\"messageActive\":" + String(displayMgr.messageActive() ? "true" : "false") + ",";
-    s += "\"message\":\"" + jsonEscape(displayMgr.message()) + "\"";
-    s += "}";
-    return s;
+    char ip[16];
+    wifiHelper.ip(ip, sizeof(ip));
+    char message[140];
+    jsonEscape(message, sizeof(message), displayMgr.message());
+    char buf[512];
+    snprintf(buf, sizeof(buf),
+             "{\"ok\":true,\"throttle\":%d,\"steering\":%d,\"mood\":\"%s\","
+             "\"sleeping\":%s,\"flashlightOn\":%s,\"oledAnim\":%s,"
+             "\"camResolution\":%d,\"camQuality\":%d,\"camFlip\":%s,"
+             "\"reverseLeft\":%s,\"reverseRight\":%s,\"trimLeft\":%u,\"trimRight\":%u,"
+             "\"connected\":true,\"apMode\":true,\"ip\":\"%s\","
+             "\"messageActive\":%s,\"message\":\"%s\"}",
+             (int)motors.throttle(), (int)motors.steering(), eyes.moodName(),
+             displayMgr.sleeping() ? "true" : "false",
+             settings.data.flashlightOn ? "true" : "false",
+             settings.data.oledAnim ? "true" : "false",
+             settings.data.camResolution, settings.data.camQuality,
+             settings.data.camFlip ? "true" : "false",
+             settings.data.reverseLeft ? "true" : "false",
+             settings.data.reverseRight ? "true" : "false",
+             (unsigned)settings.data.trimLeft, (unsigned)settings.data.trimRight,
+             ip,
+             displayMgr.messageActive() ? "true" : "false",
+             message);
+    return String(buf);
 }
 
 // Serial-free bring-up test: GET /api/pintest?token=hero&pin=1&speed=200
@@ -117,14 +124,14 @@ void WebServerMgr::begin() {
 
     // ---------- open endpoints ----------
     _server.on("/api/info", HTTP_GET, [](AsyncWebServerRequest* request) {
-        String s = "{";
-        s += "\"ok\":true,";
-        s += "\"apMode\":true,";
-        s += "\"connected\":true,";
-        s += "\"ip\":\"" + wifiHelper.ip() + "\",";
-        s += "\"hostname\":\"" HOSTNAME "\"";
-        s += "}";
-        request->send(200, "application/json", s);
+        char ip[16];
+        wifiHelper.ip(ip, sizeof(ip));
+        char buf[128];
+        snprintf(buf, sizeof(buf),
+                 "{\"ok\":true,\"apMode\":true,\"connected\":true,"
+                 "\"ip\":\"%s\",\"hostname\":\"" HOSTNAME "\"}",
+                 ip);
+        request->send(200, "application/json", buf);
     });
 
     _server.on("/api/auth", HTTP_POST, [](AsyncWebServerRequest* request) {

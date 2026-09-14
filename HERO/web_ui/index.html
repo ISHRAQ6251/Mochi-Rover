@@ -2,75 +2,80 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
 <meta name="theme-color" content="#0f1117">
 <title>HERO</title>
 <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 
-  <div id="authGate" class="gate hidden">
+  <div id="authGate" class="gate hidden" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
     <div class="gate-card">
-      <div class="logo-mark">H</div>
-      <h1>HERO</h1>
+      <div class="logo-mark" aria-hidden="true">H</div>
+      <h1 id="gateTitle">HERO</h1>
       <p class="muted">Enter the rover access token to unlock the cockpit.</p>
-      <label>Access token</label>
-      <input id="authToken" type="password" autocomplete="off" spellcheck="false">
+      <label for="authToken">Access token</label>
+      <input id="authToken" type="password" autocomplete="off" spellcheck="false" autocapitalize="off">
       <button id="authBtn" class="primary">Unlock</button>
-      <div id="authErr" class="err"></div>
+      <div id="authErr" class="err" role="status" aria-live="polite"></div>
     </div>
   </div>
 
   <div id="app" class="hidden">
     <header id="topbar">
-      <div class="brand"><span class="logo-mark sm">H</span> HERO</div>
-      <div class="status-pill">
-        <span class="dot" id="dotCtrl"></span><span class="dot-label">CTRL</span>
-        <span class="pill-sep"></span>
-        <span class="dot" id="dotCam"></span><span class="dot-label">CAM</span>
+      <div class="brand"><span class="logo-mark sm" aria-hidden="true">H</span> HERO</div>
+      <div class="status-pill" role="status" aria-live="polite" aria-label="Link status">
+        <span class="dot" id="dotCtrl" aria-hidden="true"></span><span class="dot-label">CTRL</span>
+        <span class="pill-sep" aria-hidden="true"></span>
+        <span class="dot" id="dotCam" aria-hidden="true"></span><span class="dot-label">CAM</span>
       </div>
       <div class="top-actions">
-        <button id="flashBtn" class="icon" title="Flashlight" aria-label="Flashlight">
-          <svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 10-14h-7l0-6z"/></svg>
+        <button id="flashBtn" class="icon" title="Flashlight" aria-label="Flashlight" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 10-14h-7l0-6z"/></svg>
         </button>
-        <button id="moodBtn" class="icon" title="Mood" aria-label="Mood">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="9" cy="11" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="1.4" fill="currentColor" stroke="none"/><path d="M8.5 15c1.2 1.4 5.8 1.4 7 0"/></svg>
+        <button id="moodBtn" class="icon" title="Mood" aria-label="Mood" aria-haspopup="menu" aria-expanded="false" aria-controls="moodPopup">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="9" cy="11" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="1.4" fill="currentColor" stroke="none"/><path d="M8.5 15c1.2 1.4 5.8 1.4 7 0"/></svg>
         </button>
-        <button id="settingsBtn" class="icon" title="Settings" aria-label="Settings">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3V20.5M4.9 7.1l1.6 1.6M17.5 15.3l1.6 1.6M3.5 12h2.2M18.3 12H20.5M4.9 16.9l1.6-1.6M17.5 8.7l1.6-1.6"/></svg>
+        <button id="settingsBtn" class="icon" title="Settings" aria-label="Settings" aria-haspopup="dialog">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3V20.5M4.9 7.1l1.6 1.6M17.5 15.3l1.6 1.6M3.5 12h2.2M18.3 12H20.5M4.9 16.9l1.6-1.6M17.5 8.7l1.6-1.6"/></svg>
         </button>
       </div>
     </header>
 
-    <div class="video-panel">
-      <img id="video" alt="live camera feed">
+    <div class="video-panel" id="videoPanel">
+      <img id="video" alt="Live camera feed">
+      <div id="videoOffline" class="video-offline">
+        <div class="spinner" aria-hidden="true"></div>
+        <span>Connecting to camera...</span>
+      </div>
       <div class="video-actions">
-        <button id="flipBtn" class="vbtn" title="Flip / refresh" aria-label="Flip">
-          <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 15"/><path d="M4 20v-5h5"/></svg>
+        <button id="flipBtn" class="vbtn" title="Flip / refresh" aria-label="Flip camera">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 13.7-5.6L20 9"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 15"/><path d="M4 20v-5h5"/></svg>
         </button>
-        <button id="photoBtn" class="vbtn" title="Capture photo" aria-label="Photo">
-          <svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+        <button id="photoBtn" class="vbtn" title="Capture photo" aria-label="Capture photo">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13.5" r="3.5"/></svg>
         </button>
-        <button id="recBtn" class="vbtn rec" title="Record clip" aria-label="Record">
-          <span class="rec-dot"></span>
+        <button id="recBtn" class="vbtn rec" title="Record clip" aria-label="Record clip" aria-pressed="false">
+          <span class="rec-dot" aria-hidden="true"></span>
         </button>
       </div>
-      <div id="videoBadge" class="video-badge hidden"></div>
+      <div id="videoBadge" class="video-badge hidden" role="status" aria-live="polite"></div>
     </div>
 
     <div class="cockpit">
-      <div class="dpad" aria-label="Drive pad">
+      <div class="dpad" role="group" aria-label="Drive pad">
         <button id="btnUp" class="ctrl" title="Forward" aria-label="Forward">
-          <svg viewBox="0 0 24 24"><path d="M6 14l6-6 6 6"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14l6-6 6 6"/></svg>
         </button>
         <button id="btnLeft" class="ctrl" title="Left" aria-label="Left">
-          <svg viewBox="0 0 24 24"><path d="M14 6l-6 6 6 6"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>
         </button>
         <button id="btnRight" class="ctrl" title="Right" aria-label="Right">
-          <svg viewBox="0 0 24 24"><path d="M10 6l6 6-6 6"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>
         </button>
         <button id="btnDown" class="ctrl" title="Back" aria-label="Back">
-          <svg viewBox="0 0 24 24"><path d="M6 10l6 6 6-6"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10l6 6 6-6"/></svg>
         </button>
       </div>
       <div class="cockpit-side">
@@ -96,32 +101,36 @@
 
     <div class="deck">
       <div class="msg-row">
+        <label class="sr-only" for="msgInput">Message to show on the OLED</label>
         <input id="msgInput" maxlength="32" placeholder="Message to OLED..." autocomplete="off">
         <button id="msgSend">Send</button>
-        <button id="msgClear" class="ghost hidden" title="Clear message">X</button>
+        <button id="msgClear" class="ghost hidden" title="Clear message" aria-label="Clear message">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
+        </button>
       </div>
+      <p class="sr-only" id="msgLive" role="status" aria-live="polite"></p>
     </div>
   </div>
 
-  <div id="moodPopup" class="mood-popup hidden">
-    <button class="mood-opt" data-mood="happy">Happy</button>
-    <button class="mood-opt" data-mood="angry">Angry</button>
-    <button class="mood-opt" data-mood="curious">Curious</button>
-    <button class="mood-opt" data-mood="dead">Dead</button>
-    <button class="mood-opt" data-mood="sleepy">Sleepy</button>
-    <button class="mood-opt" data-mood="wink">Wink</button>
+  <div id="moodPopup" class="mood-popup hidden" role="menu" aria-label="Face mood">
+    <button class="mood-opt" role="menuitem" data-mood="happy">Happy</button>
+    <button class="mood-opt" role="menuitem" data-mood="angry">Angry</button>
+    <button class="mood-opt" role="menuitem" data-mood="curious">Curious</button>
+    <button class="mood-opt" role="menuitem" data-mood="dead">Dead</button>
+    <button class="mood-opt" role="menuitem" data-mood="sleepy">Sleepy</button>
+    <button class="mood-opt" role="menuitem" data-mood="wink">Wink</button>
   </div>
 
-  <div id="settingsModal" class="modal hidden">
+  <div id="settingsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
     <div class="modal-card">
       <div class="modal-head">
-        <h2>Settings</h2>
-        <button id="settingsClose" class="icon" title="Close" aria-label="Close">
-          <svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg>
+        <h2 id="settingsTitle">Settings</h2>
+        <button id="settingsClose" class="icon" title="Close" aria-label="Close settings">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>
         </button>
       </div>
       <p class="muted settings-hint">Join Wi-Fi <strong>HERO</strong> (password <strong>hero1234</strong>) then open <strong>http://192.168.4.1</strong></p>
-      <label>Theme</label>
+      <label for="setTheme">Theme</label>
       <select id="setTheme">
         <option value="dark">Dark</option>
         <option value="light">Light</option>
@@ -134,14 +143,16 @@
       <input id="trimLeft" type="range" min="50" max="100" value="100" step="1">
       <label class="trim-row" for="trimRight">Right trim <output id="trimRightVal">100</output>%</label>
       <input id="trimRight" type="range" min="50" max="100" value="100" step="1">
-      <label>Access token</label>
-      <input id="setToken" type="password" placeholder="new token (optional)" autocomplete="off">
+      <label for="setToken">Access token</label>
+      <input id="setToken" type="password" placeholder="new token (optional)" autocomplete="off" autocapitalize="off">
       <div class="modal-actions">
         <button id="settingsSave" class="primary">Save</button>
       </div>
-      <div id="settingsMsg" class="err"></div>
+      <div id="settingsMsg" class="err" role="status" aria-live="polite"></div>
     </div>
   </div>
+
+  <noscript><p style="padding:20px;text-align:center">HERO needs JavaScript enabled.</p></noscript>
 
 <script src="/app.js"></script>
 </body>

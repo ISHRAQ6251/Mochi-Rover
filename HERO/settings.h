@@ -28,11 +28,9 @@ public:
 
     // convenience accessors used by the rest of the firmware
     void setToken(const char* token);
-    void setCamera(int resolution, int quality);
     void setCamFlip(bool flip);
     void setFlashlight(bool on);
     void setOledAnim(bool on);
-    void setMotorReverse(bool left, bool right);
     void setMotorCal(bool reverseLeft, bool reverseRight, uint8_t trimLeft, uint8_t trimRight);
 
 private:

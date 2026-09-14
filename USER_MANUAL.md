@@ -43,26 +43,39 @@ or install the latest release from the [releases page](https://github.com/arduin
 
 ```bash
 arduino-cli config init
+arduino-cli config add board_manager.additional_urls \
+  https://espressif.github.io/arduino-esp32/package_esp32_index.json
 arduino-cli core update-index
-arduino-cli core install esp32:esp32
+arduino-cli core install esp32:esp32@3.3.11
 ```
 
-This installs the Arduino ESP32 core (v3.x) which already bundles the
-precompiled `esp32-camera` driver, so you do not need to install the camera
-library separately.
+This installs the Arduino ESP32 core (v3.3.11 or later 3.x). The core already
+bundles the precompiled `esp32-camera` driver plus Preferences, WiFi, DNSServer,
+ESPmDNS and Wire, so you do not need to install those separately.
 
 ### 2.3 Install the libraries
 
+All of these are in the Arduino IDE Library Manager (Sketch > Include Library >
+Manage Libraries). Use the **exact listing names** below — several similarly
+named forks exist and will not compile against the current ESP32 core.
+
 ```bash
-arduino-cli lib install "ESPAsyncWebServer" "AsyncTCP" \
-  "Adafruit GFX Library" "Adafruit SH110X" "Adafruit BusIO"
+arduino-cli lib install "ESP Async WebServer@3.12.1" "Async TCP@3.5.0" \
+  "Adafruit GFX Library@1.12.6" "Adafruit SH110X@2.1.15" "Adafruit BusIO@1.17.4"
 ```
 
-> **If you get an mbedTLS error** while compiling
-> (`mbedtls_md5_update_ret ... not declared`), edit
-> `~/Arduino/libraries/ESPAsyncWebServer/src/WebAuthentication.cpp` and remove
-> the `_ret` suffix from the `mbedtls_md5_starts/update/finish` calls, then save.
-> This is a known incompatibility with newer ESP32 core mbedTLS versions.
+| Library Manager name | Maintainer | Version |
+| -------------------- | ---------- | ------- |
+| ESP Async WebServer | ESP32Async | 3.12.1 |
+| Async TCP | ESP32Async | 3.5.0 |
+| Adafruit GFX Library | Adafruit | 1.12.6 |
+| Adafruit SH110X | Adafruit | 2.1.15 |
+| Adafruit BusIO | Adafruit | 1.17.4 |
+
+Do **not** install **ESPAsyncWebServer** (lacamera / ESPHome) or **AsyncTCP**
+(dvarrel). Those older listings call removed mbedTLS `*_ret` symbols and fail
+to compile on esp32 core 3.3.x. The ESP32Async pair already uses `MD5Builder`,
+so no local library patch is required.
 
 ### 2.4 Compile the sketch
 
@@ -74,8 +87,8 @@ arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi HERO
 You should see:
 
 ```
-Sketch uses 1106618 bytes (84%) of program storage space.
-Global variables use 60812 bytes (18%) of dynamic memory.
+Sketch uses 1124266 bytes (85%) of program storage space.
+Global variables use 60908 bytes (18%) of dynamic memory.
 ```
 
 ### 2.5 Alternative: build with the Arduino IDE
@@ -88,10 +101,11 @@ If you prefer the Arduino IDE over the command line:
    if the field is empty).
 3. In **Boards Manager** (Tools > Board > Boards Manager), search for
    **esp32** by Espressif and install it.
-4. In **Library Manager**, install: **ESPAsyncWebServer** and **AsyncTCP**
-   (pick the versions that support the ESP32 core 3.x - the actively maintained
-   forks), plus **Adafruit GFX Library**, **Adafruit SH110X**, **Adafruit
-   BusIO**.
+4. In **Library Manager**, install these exact listings (search the names
+   with spaces as written): **ESP Async WebServer** (ESP32Async, 3.12.1) and
+   **Async TCP** (ESP32Async, 3.5.0), plus **Adafruit GFX Library** (1.12.6),
+   **Adafruit SH110X** (2.1.15), **Adafruit BusIO** (1.17.4). Skip the
+   similarly named **ESPAsyncWebServer** / **AsyncTCP** entries.
 5. Open `HERO/HERO.ino`. It auto-loads the other files in the
    folder.
 6. **Tools > Board > esp32 > ESP32S3 Dev Module**, then set:
@@ -189,8 +203,8 @@ arduino-cli upload -p /dev/ttyACM0 \
 Replace `/dev/ttyACM0` with the port from the previous step.
 
 You should see the progress bar run and finish with "Hard resetting...". The
-rover then boots. **First boot after flashing is slow** (Wi-Fi tries to connect,
-then falls back to the setup network) - give it ~30 seconds.
+rover then boots. **First boot after flashing is slow** (the SoftAP, camera and
+web server all start up) - give it ~30 seconds, then join the `HERO` network.
 
 **If upload hangs at "Connecting...":** the board is not in download mode (BOOT
 was not held). Try again, or check the cable. Some boards with USB-C sockets

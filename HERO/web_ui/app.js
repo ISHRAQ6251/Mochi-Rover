@@ -44,9 +44,17 @@ function applyTheme(t) {
 applyTheme(localStorage.getItem("hero_theme") || "dark");
 
 /* ---------------- boot flow ---------------- */
+function showGate(msg) {
+  $("app").classList.add("hidden");
+  $("authGate").classList.remove("hidden");
+  $("authErr").textContent = msg || "";
+  const t = $("authToken");
+  if (t) t.focus();
+}
+
 async function boot() {
   if (!state.token) {
-    $("authGate").classList.remove("hidden");
+    showGate("");
     return;
   }
   const r = await api("/api/state");
@@ -58,7 +66,7 @@ async function boot() {
       localStorage.removeItem("hero_token");
       state.token = "";
     }
-    $("authGate").classList.remove("hidden");
+    showGate("");
   }
 }
 
@@ -87,6 +95,8 @@ function markCam(live) {
   state.camLive = !!live;
   const d = $("dotCam");
   if (d) d.classList.toggle("on", state.camLive);
+  const off = $("videoOffline");
+  if (off) off.classList.toggle("hidden", state.camLive);
 }
 
 function startVideo() {
@@ -158,6 +168,7 @@ function stopRecording() {
   }
   if (recRaf) { cancelAnimationFrame(recRaf); recRaf = 0; }
   $("recBtn").classList.remove("recording");
+  $("recBtn").setAttribute("aria-pressed", "false");
   $("videoBadge").classList.add("hidden");
 }
 
@@ -194,6 +205,7 @@ $("recBtn").addEventListener("click", () => {
   };
   draw();
   $("recBtn").classList.add("recording");
+  $("recBtn").setAttribute("aria-pressed", "true");
   $("videoBadge").textContent = "REC";
   $("videoBadge").classList.remove("hidden");
 });
@@ -276,6 +288,22 @@ function bindCtrl(id, key) {
     if (held.has(key)) up({ preventDefault() {} });
   });
   el.addEventListener("contextmenu", (e) => e.preventDefault());
+  // Keyboard parity for the drive pad: hold Enter/Space to drive, release to stop.
+  el.addEventListener("keydown", (e) => {
+    if ((e.key === "Enter" || e.key === " ") && !e.repeat) {
+      e.preventDefault();
+      down(e);
+    }
+  });
+  el.addEventListener("keyup", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      up(e);
+    }
+  });
+  el.addEventListener("blur", () => {
+    if (held.has(key)) up({ preventDefault() {} });
+  });
 }
 bindCtrl("btnUp", "up");
 bindCtrl("btnDown", "down");
@@ -302,19 +330,29 @@ async function setMood(m) {
 
 $("moodSelect").addEventListener("change", () => setMood($("moodSelect").value));
 
+function setMoodPopup(open) {
+  $("moodPopup").classList.toggle("hidden", !open);
+  $("moodBtn").setAttribute("aria-expanded", open ? "true" : "false");
+  if (open) {
+    const first = $("moodPopup").querySelector(".mood-opt");
+    if (first) first.focus();
+  }
+}
+
 $("moodBtn").addEventListener("click", () => {
-  $("moodPopup").classList.toggle("hidden");
+  setMoodPopup($("moodPopup").classList.contains("hidden"));
 });
 document.querySelectorAll(".mood-opt").forEach((b) => {
   b.addEventListener("click", () => {
     setMood(b.dataset.mood);
-    $("moodPopup").classList.add("hidden");
+    setMoodPopup(false);
+    $("moodBtn").focus();
   });
 });
 document.addEventListener("pointerdown", (e) => {
   if (!$("moodPopup").classList.contains("hidden") &&
       !e.target.closest("#moodPopup") && e.target.id !== "moodBtn") {
-    $("moodPopup").classList.add("hidden");
+    setMoodPopup(false);
   }
 });
 
@@ -327,25 +365,27 @@ $("msgSend").addEventListener("click", async () => {
   const t = $("msgInput").value.trim();
   if (!t) return;
   const r = await api("/api/message", { text: t });
-  if (r.ok) { updateMsgState(true); }
+  if (r.ok) { updateMsgState(true); $("msgLive").textContent = "Message sent to OLED"; }
   $("msgInput").value = "";
 });
 $("msgInput").addEventListener("keydown", (e) => { if (e.key === "Enter") $("msgSend").click(); });
 $("msgClear").addEventListener("click", async () => {
   const r = await api("/api/message", {});
-  if (r.ok) updateMsgState(false);
+  if (r.ok) { updateMsgState(false); $("msgLive").textContent = "OLED message cleared"; }
 });
 
 /* ---------------- flash ---------------- */
-async function setFlashlight(on) {
-  const prev = state.flashlight;
+function setFlashUi(on) {
   state.flashlight = !!on;
   $("flashBtn").classList.toggle("on", state.flashlight);
+  $("flashBtn").setAttribute("aria-pressed", state.flashlight ? "true" : "false");
+}
+
+async function setFlashlight(on) {
+  const prev = state.flashlight;
+  setFlashUi(on);
   const r = await api("/api/flash", { on: state.flashlight ? 1 : 0 });
-  if (!r.ok) {
-    state.flashlight = prev;
-    $("flashBtn").classList.toggle("on", prev);
-  }
+  if (!r.ok) setFlashUi(prev);
 }
 $("flashBtn").addEventListener("click", () => setFlashlight(!state.flashlight));
 
@@ -365,7 +405,10 @@ function syncTrimUi() {
   $("trimRightVal").textContent = r;
 }
 
+let lastFocus = null;
+
 function openSettings() {
+  lastFocus = document.activeElement;
   $("setTheme").value = localStorage.getItem("hero_theme") || "dark";
   $("revLeft").checked = !!state.reverseLeft;
   $("revRight").checked = !!state.reverseRight;
@@ -373,9 +416,45 @@ function openSettings() {
   $("setToken").value = "";
   $("settingsMsg").textContent = "";
   $("settingsModal").classList.remove("hidden");
+  $("settingsClose").focus();
+}
+function closeSettings() {
+  $("settingsModal").classList.add("hidden");
+  if (lastFocus && typeof lastFocus.focus === "function") lastFocus.focus();
 }
 $("settingsBtn").addEventListener("click", openSettings);
-$("settingsClose").addEventListener("click", () => $("settingsModal").classList.add("hidden"));
+$("settingsClose").addEventListener("click", closeSettings);
+
+// Keep keyboard focus inside the modal while it is open.
+function trapFocus(e, root) {
+  const items = root.querySelectorAll(
+    'button, input, select, textarea, a[href], [tabindex]:not([tabindex="-1"])'
+  );
+  const visible = Array.prototype.filter.call(items, (el) => el.offsetParent !== null);
+  if (visible.length === 0) return;
+  const first = visible[0];
+  const last = visible[visible.length - 1];
+  if (e.shiftKey && document.activeElement === first) {
+    e.preventDefault();
+    last.focus();
+  } else if (!e.shiftKey && document.activeElement === last) {
+    e.preventDefault();
+    first.focus();
+  }
+}
+
+document.addEventListener("keydown", (e) => {
+  const modalOpen = !$("settingsModal").classList.contains("hidden");
+  const popupOpen = !$("moodPopup").classList.contains("hidden");
+  if (e.key === "Escape") {
+    if (modalOpen) { closeSettings(); return; }
+    if (popupOpen) { setMoodPopup(false); $("moodBtn").focus(); }
+    return;
+  }
+  if (e.key === "Tab" && modalOpen) {
+    trapFocus(e, $("settingsModal").querySelector(".modal-card"));
+  }
+});
 
 $("trimLeft").addEventListener("input", () => {
   $("trimLeftVal").textContent = $("trimLeft").value;
@@ -416,12 +495,13 @@ $("settingsSave").addEventListener("click", async () => {
       msg.textContent = "Token updated. Saved.";
     } else {
       msg.textContent = "Token must be at least 4 characters.";
+      $("setToken").focus();
       return;
     }
   } else {
     msg.textContent = "Saved.";
   }
-  setTimeout(() => $("settingsModal").classList.add("hidden"), 1200);
+  setTimeout(closeSettings, 1200);
 });
 
 /* ---------------- state polling ---------------- */
@@ -429,10 +509,9 @@ let pollTimer = null;
 
 function lockOut() {
   stopMotorsLocal();
-  $("app").classList.add("hidden");
   localStorage.removeItem("hero_token");
   state.token = "";
-  $("authGate").classList.remove("hidden");
+  showGate("Session expired. Enter the token again.");
 }
 
 async function pollState() {
@@ -448,7 +527,7 @@ async function pollState() {
   state.flashlight = !!s.flashlightOn;
   state.messageActive = !!s.messageActive;
   updateMsgState(state.messageActive);
-  $("flashBtn").classList.toggle("on", state.flashlight);
+  setFlashUi(state.flashlight);
   $("dotCtrl").classList.toggle("on", true);
   $("dotCam").classList.toggle("on", state.camLive);
   const settingsOpen = !$("settingsModal").classList.contains("hidden");
@@ -476,7 +555,7 @@ function initCockpit(data) {
   state.trimRight = clampTrim(data.trimRight);
   $("moodSelect").value = state.mood;
   updateMsgState(!!data.messageActive);
-  $("flashBtn").classList.toggle("on", state.flashlight);
+  setFlashUi(state.flashlight);
   $("dotCtrl").classList.toggle("on", true);
   startVideo();
   if (!pollTimer) pollTimer = setInterval(pollState, 3000);

@@ -49,7 +49,6 @@ bool DisplayManager::begin() {
 }
 
 void DisplayManager::setMood(HeroMood mood) {
-    _mood = mood;
     eyes.setMood(mood);
     notifyActivity();
 }
@@ -69,9 +68,7 @@ void DisplayManager::clearMessage() {
     }
 }
 
-void DisplayManager::setConnected(bool connected, bool apMode, const char* ip) {
-    _connected = connected;
-    _apMode = apMode;
+void DisplayManager::setConnected(const char* ip) {
     if (ip) {
         strncpy(_ip, ip, sizeof(_ip) - 1);
         _ip[sizeof(_ip) - 1] = 0;
@@ -143,15 +140,17 @@ void DisplayManager::renderConnection() {
     _display.setTextColor(SH110X_WHITE);
     _display.setTextSize(1);
     _display.setCursor(22, 8);
-    _display.print("Join HERO AP");
+    _display.print("Join " AP_SSID " AP");
 
     _display.setCursor(8, 22);
-    _display.print("AP: 192.168.4.1");
+    _display.print("AP: ");
+    _display.print(_ip);
 
     _display.setCursor(8, 36);
-    _display.print("Pass: hero1234");
+    _display.print("Pass: " AP_PASS);
     _display.setCursor(8, 48);
-    _display.print("open 192.168.4.1");
+    _display.print("open ");
+    _display.print(_ip);
 
     if ((millis() / 500) % 2) {
         _display.fillCircle(116, 8, 3, SH110X_WHITE);

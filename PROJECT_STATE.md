@@ -43,7 +43,7 @@ ESP32-S3-WROOM-1-N16R8"). Both agree on identical OV5640 wiring.
 | OV5640 | SIOD / SIOC (SCCB) | 4 / 5 |
 | OV5640 | PWDN / RESET | -1 / -1 |
 | On-board LED | flash / status | 2 |
-| DRV8833 | IN1 / IN2 (motor A) | 1 / 14 |
+| DRV8833 | IN1 / IN2 (motor A) | 47 / 14 |
 | DRV8833 | IN3 / IN4 (motor B) | 21 / 42 |
 | SH1106 OLED | SDA / SCL (Wire / I2C0, addr 0x3C) | 40 / 41 |
 | Reserved | USB D-/D+ (flashing/console) | 19 / 20 |
@@ -65,7 +65,9 @@ stole that port and camera probe failed with 0x103.
   `config.h`, `settings` (NVS), `motor_control`, `hero_eyes`, `display_manager`,
   `wifi_helper`, `camera_server`, `web_server`, `web_ui/` embedded via generated
   PROGMEM header (`tools/embed_web.py`), `HERO.ino`.
-- Web server = ESPAsyncWebServer + AsyncTCP (as in old repo) for chunked MJPEG.
+- Web server = Library Manager **ESP Async WebServer** 3.12.1 + **Async TCP**
+  3.5.0 (maintainer ESP32Async) for chunked MJPEG. Not the lacamera/ESPHome
+  `ESPAsyncWebServer` 3.1.0 listing (that one needs a mbedTLS `_ret` patch).
 - OV5640: PIXFORMAT_JPEG, XCLK 20 MHz, fb in PSRAM, fb_count 2, grab LATEST;
   default stream SVGA (800x600), quality from NVS (default 12), all adjustable.
 - OLED face drawn procedurally with Adafruit_GFX + SH1106 I2C (no bitmaps).
@@ -209,6 +211,35 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
       The user is replacing the DRV8833. The code keeps `L_IN1` on GPIO47 (the
       pin validated during bring-up and already wired); GPIO1 is now unused.
       If GPIO47 is not broken out on a given board, use GPIO38/39/48 instead.
+
+- [x] **Library Manager audit (2026-09-13)**: every firmware dependency is
+      installable from the Arduino IDE Library Manager (or bundled with the
+      Espressif `esp32:esp32` core). No zip / git clone. Board package URL is
+      only the standard Espressif one. Switched the async stack from the
+      lacamera/ESPHome **ESPAsyncWebServer** 3.1.0 + dvarrel **AsyncTCP** 1.1.4
+      pair (which required a local mbedTLS `_ret` patch) to the ESP32Async
+      listings **ESP Async WebServer** 3.12.1 + **Async TCP** 3.5.0, which
+      already use `MD5Builder` — the README/USER_MANUAL patch note is
+      **removed**. Adafruit GFX 1.12.6 / SH110X 2.1.15 / BusIO 1.17.4 were
+      already the Library Manager latest and were left pinned. Core 3.3.11
+      (latest) still bundles `esp32-camera` plus Preferences, WiFi, DNSServer,
+      ESPmDNS, Wire. Rebuild with
+      `esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi` succeeded (1124266 B /
+      85% flash, 60908 B / 18% RAM). Pins, NVS keys, AP credentials and REST
+      contract unchanged.
+
+      | Library | Was | Library Manager? | Listing / maintainer | Latest | Action |
+      | ------- | --- | ---------------- | -------------------- | ------ | ------ |
+      | esp32 Arduino core | 3.x | Boards Manager (Espressif URL) | esp32 by Espressif Systems | 3.3.11 | pinned 3.3.11; already latest |
+      | ESPAsyncWebServer | 3.1.0 lacamera | yes, but wrong listing | **ESPAsyncWebServer** / lacamera (ESPHome) | 3.1.0 | replaced — mbedTLS `_ret` broken on core 3.3.x |
+      | ESP Async WebServer | (not used) | yes | **ESP Async WebServer** / ESP32Async | 3.12.1 | upgraded to this; mbedTLS patch not needed |
+      | AsyncTCP | 1.1.4 dvarrel | yes, but wrong listing | **AsyncTCP** / dvarrel | 1.1.4 | replaced (pairing for the old server fork) |
+      | Async TCP | (not used) | yes | **Async TCP** / ESP32Async | 3.5.0 | installed as the 3.12.1 server dependency |
+      | Adafruit GFX Library | 1.12.6 | yes | **Adafruit GFX Library** / Adafruit | 1.12.6 | left as-is (already latest) |
+      | Adafruit SH110X | 2.1.15 | yes | **Adafruit SH110X** / Adafruit | 2.1.15 | left as-is (already latest) |
+      | Adafruit BusIO | 1.17.4 | yes | **Adafruit BusIO** / Adafruit | 1.17.4 | left as-is (already latest) |
+      | esp32-camera | bundled | n/a (core precompiled libs) | espressif__esp32-camera in esp32s3-libs 3.3.11 | bundled | left as-is; no separate install |
+      | Preferences / WiFi / DNSServer / ESPmDNS / Wire | bundled | n/a (core `libraries/`) | Espressif | bundled with 3.3.11 | left as-is |
 
 
 ## In Progress

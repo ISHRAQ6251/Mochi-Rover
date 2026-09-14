@@ -11,9 +11,9 @@ public:
     void begin();
     void update();          // captive DNS so phones auto-open the cockpit
 
-    bool isApMode() const { return true; }
-    bool isConnected() const { return true; }
-    String ip() const;
+    // Writes the SoftAP address (e.g. "192.168.4.1") into dst. Avoids the heap
+    // allocation of a String on paths polled by every connected client.
+    void ip(char* dst, size_t len) const;
 
 private:
     DNSServer _dns;

@@ -22,6 +22,8 @@ void WifiHelper::update() {
     _dns.processNextRequest();
 }
 
-String WifiHelper::ip() const {
-    return WiFi.softAPIP().toString();
+void WifiHelper::ip(char* dst, size_t len) const {
+    if (!dst || len == 0) return;
+    IPAddress addr = WiFi.softAPIP();
+    snprintf(dst, len, "%u.%u.%u.%u", addr[0], addr[1], addr[2], addr[3]);
 }
