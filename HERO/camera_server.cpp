@@ -6,6 +6,15 @@
 
 CameraServer cameraServer;
 
+static camera_fb_t* s_snapFb = nullptr;
+
+static void releaseSnap() {
+    if (s_snapFb) {
+        esp_camera_fb_return(s_snapFb);
+        s_snapFb = nullptr;
+    }
+}
+
 static const char STREAM_BOUNDARY[] = "--frame\r\nContent-Type: image/jpeg\r\n\r\n";
 static const size_t STREAM_HEADER_LEN = sizeof(STREAM_BOUNDARY) - 1;
 
@@ -22,6 +31,10 @@ public:
     ~StreamPacketizer() { reset(); }
 
     size_t fill(uint8_t* buf, size_t maxLen, size_t index) {
+        if (!cameraServer.wanted()) {
+            reset();
+            return 0;
+        }
         if (index == 0) {
             reset();
         } else if (index != _written) {
@@ -31,10 +44,14 @@ public:
 
         size_t written = 0;
         while (written < maxLen) {
-            if (!_fb && !nextFrame()) {
+            if (!cameraServer.wanted()) {
+                reset();
+                break;
+            }
+            if (!cameraServer.running() || (!_fb && !nextFrame())) {
                 // Returning 0 ends the chunked response. Keep the MJPEG
-                // connection alive with multipart-legal whitespace if a
-                // frame is briefly unavailable (e.g. during /capture).
+                // connection alive with multipart-legal whitespace while the
+                // sensor is starting or a frame is briefly unavailable.
                 if (written == 0) buf[written++] = '\n';
                 break;
             }
@@ -114,11 +131,21 @@ bool CameraServer::begin() {
     cfg.fb_location = CAMERA_FB_IN_PSRAM;
     cfg.grab_mode = CAMERA_GRAB_LATEST;
 
+    if (_inited) {
+        _wantRunning = true;
+        _running = true;
+        applySettings();
+        return true;
+    }
+
     Serial.println("camera: init...");
     Serial.flush();
     esp_err_t err = esp_camera_init(&cfg);
     if (err != ESP_OK) {
         Serial.printf("camera: init failed (0x%x)\n", (unsigned)err);
+        _sensor = nullptr;
+        _running = false;
+        _inited = false;
         return false;
     }
     _sensor = esp_camera_sensor_get();
@@ -126,11 +153,57 @@ bool CameraServer::begin() {
     if (s) {
         Serial.printf("camera: PID=0x%04x\n", s->id.PID);
     }
+    _inited = true;
+    _running = true;
+    _wantRunning = true;
     applySettings();
     return true;
 }
 
+void CameraServer::start() {
+    _wantRunning = true;
+    if (_inited) _running = true;
+}
+
+void CameraServer::stop() {
+    _wantRunning = false;
+    _running = false;
+}
+
+void CameraServer::update() {
+    if (_wantRunning && !_inited) {
+        if (!begin()) _wantRunning = false;
+    } else if (!_wantRunning) {
+        maybeDeinit();
+    }
+}
+
+void CameraServer::maybeDeinit() {
+    if (_wantRunning || _running) return;
+    if (_streamClients > 0) return;
+    if (s_snapFb) return;
+    deinitNow();
+}
+
+void CameraServer::deinitNow() {
+    if (!_inited) return;
+    _sensor = nullptr;
+    esp_camera_deinit();
+    _inited = false;
+    _running = false;
+    Serial.println("camera: stopped");
+}
+
+void CameraServer::noteStreamOpen() {
+    _streamClients++;
+}
+
+void CameraServer::noteStreamClose() {
+    if (_streamClients > 0) _streamClients--;
+}
+
 void CameraServer::applySettings() {
+    if (!_running) return;
     sensor_t* s = (sensor_t*)_sensor;
     if (!s) return;
     s->set_framesize(s, (framesize_t)settings.data.camResolution);
@@ -143,18 +216,9 @@ void CameraServer::applySettings() {
 // Single JPEG snapshot at the live stream resolution. Served through a
 // chunked filler that reads directly from the PSRAM frame buffer so we
 // never copy a large JPEG onto the internal heap.
-static camera_fb_t* s_snapFb = nullptr;
-
-static void releaseSnap() {
-    if (s_snapFb) {
-        esp_camera_fb_return(s_snapFb);
-        s_snapFb = nullptr;
-    }
-}
-
 static size_t snapshotFiller(uint8_t* buf, size_t maxLen, size_t index) {
     if (!s_snapFb) return 0;
-    if (index >= s_snapFb->len) {
+    if (!cameraServer.running() || index >= s_snapFb->len) {
         releaseSnap();
         return 0;
     }
@@ -165,6 +229,10 @@ static size_t snapshotFiller(uint8_t* buf, size_t maxLen, size_t index) {
 
 static void setupCapture(AsyncWebServer& server) {
     server.on("/capture", HTTP_GET, [](AsyncWebServerRequest* request) {
+        if (!cameraServer.running()) {
+            request->send(503, "text/plain", "camera stopped");
+            return;
+        }
         sensor_t* s = esp_camera_sensor_get();
         if (!s) {
             request->send(503, "text/plain", "camera unavailable");
@@ -199,12 +267,20 @@ static void setupCapture(AsyncWebServer& server) {
 
 void CameraServer::setupHandlers(AsyncWebServer& server) {
     server.on("/stream", HTTP_GET, [](AsyncWebServerRequest* request) {
+        if (!cameraServer.wanted()) {
+            request->send(503, "text/plain", "camera stopped");
+            return;
+        }
         // Each stream gets its own packetizer so multiple phones can watch
         // simultaneously without clobbering a shared cursor. The shared_ptr is
         // co-owned by the filler and the disconnect hook, so the packetizer
         // (and any in-flight frame buffer) is torn down exactly once.
         auto pkt = std::make_shared<StreamPacketizer>();
-        request->onDisconnect([pkt]() { pkt->reset(); });
+        cameraServer.noteStreamOpen();
+        request->onDisconnect([pkt]() {
+            pkt->reset();
+            cameraServer.noteStreamClose();
+        });
         AsyncWebServerResponse* resp = request->beginChunkedResponse(
             "multipart/x-mixed-replace; boundary=frame",
             [pkt](uint8_t* buf, size_t maxLen, size_t index) {

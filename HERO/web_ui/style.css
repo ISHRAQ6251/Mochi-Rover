@@ -200,6 +200,9 @@ svg {
   padding: 0;
 }
 .top-actions .icon.on { background: var(--accent); color: #fff; }
+.top-actions .icon.stopped { background: var(--panel); color: var(--muted); }
+.cam-slash { display: none; }
+.top-actions .icon.stopped .cam-slash { display: block; }
 
 .video-panel {
   position: relative;

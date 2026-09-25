@@ -13,11 +13,12 @@ Wi-Fi controlled RC rover for a university microcontroller lab project. Hardware
 ESP32-S3-CAM module (**cheap bare clone**, N16R8 = 16 MB flash / 8 MB OPI PSRAM,
 OV5640 camera on ribbon/FPC), DRV8833 dual H-bridge, 2x N20 DC gear motors
 (differential/skid steering), 1.3" I2C SH1106 OLED (addr 0x3C). A smartphone-
-oriented web UI (password-gated, default `hero`) provides an MJPEG live stream,
-forward/back/turn controls with a speed slider, still/clip capture (browser-side
-MediaRecorder), a flashlight toggle (on-board LED, GPIO2), mood buttons (6 moods),
-and a message-to-OLED text box. The OLED runs a state-driven animated "HERO"
-character face (boot/connect -> idle -> driving -> mood override -> sleep -> text).
+oriented web UI (password-gated, default `hero`) provides an MJPEG live stream
+with camera start/stop (sensor de-init), forward/back/turn controls with a speed
+slider, still/clip capture (browser-side MediaRecorder), a flashlight toggle in
+Settings (on-board LED, GPIO2), mood buttons (6 moods), and a message-to-OLED
+text box. The OLED runs a state-driven animated "HERO" character face
+(boot/connect -> idle -> driving -> mood override -> sleep -> text).
 
 Built from scratch per the project brief; the previous repo (AI Thinker ESP32-CAM
 with OV2640) was deleted as instructed and remains in git commit `0cbd870`.
@@ -76,8 +77,18 @@ stole that port and camera probe failed with 0x103.
 - USER-CONFIRMED (2026-09-01): AP-only. Always SoftAP `HERO` / `hero1234` at
   192.168.4.1. No station-mode / lab-router provisioning.
 - USER-CONFIRMED: default auth password `hero`, changeable from settings modal.
-- Settings: theme, reverse-left / reverse-right motor, left/right PWM trim
-  50-100% (NVS `trim_l` / `trim_r`), optional new token.
+- Settings: flashlight (immediate GPIO2 LED, NVS `flash_on`), theme (browser),
+  reverse-left / reverse-right motor, left/right PWM trim 50-100% (NVS
+  `trim_l` / `trim_r`), optional new token.
+- Drive mixing: firmware `left = throttle + steering`, `right = throttle -
+  steering`. The cockpit sends Left as positive steering and Right as negative
+  so the physical rover turns the labelled way.
+- Camera: boots running; cockpit auto-opens `/stream` on unlock. Header
+  start/stop POSTs `/api/camera` `on=1/0`. Init/deinit run in
+  `cameraServer.update()` from `loop()`, not the async web task. `/api/state`
+  `camRunning` is `wanted()`, not the momentary `running()` flag.
+- MJPEG: one `StreamPacketizer` per `/stream` client. `/api/state` and
+  `/api/info` use fixed `snprintf` buffers (heap-free poll path).
 - Drive safety: motors stop when controls are released / on disconnect. The
   firmware watchdog coasts the motors ~1.5 s after the last drive/stop command
   (`DRIVE_WATCHDOG_MS`), and the UI repeats the drive command every 300 ms while
@@ -241,11 +252,19 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
       | esp32-camera | bundled | n/a (core precompiled libs) | espressif__esp32-camera in esp32s3-libs 3.3.11 | bundled | left as-is; no separate install |
       | Preferences / WiFi / DNSServer / ESPmDNS / Wire | bundled | n/a (core `libraries/`) | Espressif | bundled with 3.3.11 | left as-is |
 
+- [x] **Cockpit camera + turn + portrait (2026-09-25)**: UI left/right
+      steering signs swapped so Left turns left (firmware mix unchanged).
+      Settings button is a gear SVG (no emoji). Header camera start/stop
+      POSTs `/api/camera` `on=0/1`; Stop de-inits the OV5640 after streams
+      and snapshots release buffers; Start re-inits from `loop()`. Stream
+      auto-connects on unlock. `/stream` stays open with multipart whitespace
+      while the sensor is re-initing so Start does not 503. Flashlight moved
+      out of the cramped portrait header into Settings as an immediate
+      checkbox; top bar is camera + mood + gear.
 
 ## In Progress
 
-- Optional runtime smoke checks on real hardware (flash + drive + capture).
-- User to verify wiring and board silkscreen at build time.
+- None. The rover is in working shape on the user's hardware.
 
 ## Open Questions For The User
 
@@ -256,11 +275,13 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
 
 ## Known Issues / TODO
 
-- OV5640 ribbon wiring on the user's board must be verified at build time; the
+- OV5640 ribbon wiring on a new board must be verified at build time; the
   pinout above is the well-known Freenove/generic N16R8 layout, but cheap clones
-  occasionally relabel. Firmware prints the detected sensor PID + a pin map on
-  boot so mismatches are easy to diagnose.
-- Flashlight toggles the on-board LED on GPIO2 (per sorn-AI repo); if the user's
-  board lacks an LED there, docs say to wire an external LED to GPIO2.
-- Separate motor supply (2x 18650 / 4x AA ~ 6 V) recommended; see FUNCTIONALITY
-  docs for the power architecture.
+  occasionally relabel. Firmware prints the detected sensor PID on boot so
+  mismatches are easy to diagnose.
+- Flashlight toggles the on-board LED on GPIO2 (per sorn-AI repo); if a board
+  lacks an LED there, wire an external LED to GPIO2 through a resistor.
+- Separate motor supply (2x 18650 / 4x AA ~ 6 V) recommended; never draw motor
+  current from the ESP32 regulator.
+- Older iOS Safari often shows only the first MJPEG frame; Chrome is the
+  supported live-view browser.

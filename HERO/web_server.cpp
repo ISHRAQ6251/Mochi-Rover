@@ -67,7 +67,7 @@ static String stateJson() {
     snprintf(buf, sizeof(buf),
              "{\"ok\":true,\"throttle\":%d,\"steering\":%d,\"mood\":\"%s\","
              "\"sleeping\":%s,\"flashlightOn\":%s,\"oledAnim\":%s,"
-             "\"camResolution\":%d,\"camQuality\":%d,\"camFlip\":%s,"
+             "\"camResolution\":%d,\"camQuality\":%d,\"camFlip\":%s,\"camRunning\":%s,"
              "\"reverseLeft\":%s,\"reverseRight\":%s,\"trimLeft\":%u,\"trimRight\":%u,"
              "\"connected\":true,\"apMode\":true,\"ip\":\"%s\","
              "\"messageActive\":%s,\"message\":\"%s\"}",
@@ -77,6 +77,7 @@ static String stateJson() {
              settings.data.oledAnim ? "true" : "false",
              settings.data.camResolution, settings.data.camQuality,
              settings.data.camFlip ? "true" : "false",
+             cameraServer.wanted() ? "true" : "false",
              settings.data.reverseLeft ? "true" : "false",
              settings.data.reverseRight ? "true" : "false",
              (unsigned)settings.data.trimLeft, (unsigned)settings.data.trimRight,
@@ -234,6 +235,16 @@ void WebServerMgr::begin() {
 
     _server.on("/api/camera", HTTP_POST, [](AsyncWebServerRequest* request) {
         if (!authorized(request)) return unauthorized(request);
+        if (request->hasParam("on", true)) {
+            bool on = request->getParam("on", true)->value() == "1";
+            if (on) cameraServer.start();
+            else cameraServer.stop();
+            request->send(200, "application/json",
+                          cameraServer.wanted()
+                              ? "{\"ok\":true,\"camRunning\":true}"
+                              : "{\"ok\":true,\"camRunning\":false}");
+            return;
+        }
         if (request->hasParam("flip", true)) {
             settings.setCamFlip(request->getParam("flip", true)->value() == "1");
             cameraServer.applySettings();

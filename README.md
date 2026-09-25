@@ -5,31 +5,37 @@ Wi-Fi controlled RC rover for a university microcontroller lab project.
 An ESP32-S3-CAM module streams live video over Wi-Fi to a phone browser while a
 little "HERO" robot face with animated eyes runs on an OLED. The browser is a
 password-gated cockpit: differential drive pads, a speed slider, photo + video
-clip capture, a flashlight toggle, six mood buttons and a message-to-OLED box.
+clip capture, camera start/stop, a flashlight toggle, six mood buttons and a
+message-to-OLED box.
 
 ![board: ESP32-S3-CAM clone + DRV8833 + 2x N20 + SH1106 OLED]
 
 > **Building or using the rover?** Start with the
-> [User Manual](USER_MANUAL.md) - it has the full parts list, step-by-step
+> User Manual (`USER_MANUAL.md`) - it has the full parts list, step-by-step
 > wiring, code upload instructions and the complete driving guide.
-> The [Functionality Reference](HERO/FUNCTIONALITY.md) documents every
+> The Functionality Reference (`HERO/FUNCTIONALITY.md`) documents every
 > API endpoint, the OLED state machine and the face engine.
 
 ## Features
 
 - **Live MJPEG video** streamed to the phone (SVGA 800x600 default, PSRAM
-  frame buffers, low-latency grab mode).
+  frame buffers, low-latency grab mode). Several phones can watch at once;
+  each `/stream` client has its own packetizer.
+- **Camera start/stop**: a header button de-inits the OV5640 to free the
+  sensor, and starts it again from the Arduino `loop()`. The stream opens
+  automatically when the cockpit unlocks.
 - **Photo & clip capture**: stills at the live stream size (SVGA default) and
   client-side WebM clips - no SD card required.
 - **Differential drive**: hold-to-move steering/throttle pads with arcade
-  throttle+steering mixing and a 0-255 speed slider.
+  throttle+steering mixing and a 0-255 speed slider. Left/right in the UI
+  are mapped so the physical rover turns the expected way.
 - **Auto-stop safety watchdog**: the rover coasts the motors ~1.5 s after the
   last drive command, so a dropped connection or closed tab can never leave it
   driving itself.
 - **"HERO" OLED face**: procedural animated eyes (blinks, saccades, idle
   script), six moods, driving reactions and a sleep state; plus a persistent
   message-to-OLED box.
-- **Flashlight** toggle on the onboard LED.
+- **Flashlight** toggle on the onboard LED (Settings, takes effect immediately).
 - **Access-token auth** (default `hero`), changeable from the settings panel.
 - **Own hotspot**: always SoftAP `HERO` / `hero1234`. Phone joins it and opens
   `http://192.168.4.1`. No lab router, no provisioning.
@@ -63,7 +69,7 @@ boot to help you spot a mismatch.
 | Flashlight LED | 2 | onboard LED (or external LED + resistor) |
 
 The full wiring checklist, power layout (separate motor battery!) and the
-pin-avoidance list are in the [User Manual](USER_MANUAL.md).
+pin-avoidance list are in the User Manual (`USER_MANUAL.md`).
 
 ## Build & flash
 
@@ -102,7 +108,13 @@ arduino-cli upload -p /dev/ttyACM0 \
 
 `FlashSize=16M` and `PSRAM=opi` are important: the N16R8 has 16 MB flash and
 8 MB OPI PSRAM (required for camera buffers). Detailed upload steps, boot-mode
-handling and troubleshooting are in the [User Manual](USER_MANUAL.md).
+handling and troubleshooting are in the User Manual (`USER_MANUAL.md`).
+
+After editing `HERO/web_ui/`, regenerate the PROGMEM copy before compiling:
+
+```bash
+python3 HERO/tools/embed_web.py HERO/web_ui HERO/web_assets.h
+```
 
 ## Quick usage
 
@@ -110,11 +122,12 @@ handling and troubleshooting are in the [User Manual](USER_MANUAL.md).
    **`hero1234`**).
 2. Join that network on your phone and open `http://192.168.4.1`.
 3. Unlock with the access token (default **`hero`**).
-4. Drive with the d-pad, adjust speed, reverse or trim a motor in Settings if
-   it spins the wrong way or the rover drifts, capture from the video panel,
-   send OLED messages.
+4. Drive with the d-pad. The live stream starts on unlock; use the camera
+   button in the top bar to stop or start the sensor. Flashlight, motor reverse
+   and trim live in Settings (gear). Capture from the video overlay, send OLED
+   messages from the bottom card.
 
-See the [User Manual](USER_MANUAL.md) for the full cockpit tour.
+See the User Manual (`USER_MANUAL.md`) for the full cockpit tour.
 
 ## Project proposal
 
@@ -128,15 +141,16 @@ timeline, with placeholder boxes for the circuit diagram and 3D chassis render.
 ```
 README.md                 this file
 USER_MANUAL.md            parts list, wiring, upload and usage guide
-HERO/               Arduino sketch
-  HERO.ino          main sketch
+PROJECT_STATE.md          pin/decision/checklist history
+HERO/                     Arduino sketch
+  HERO.ino                main sketch (loop pumps wifi, OLED, motors, camera)
   config.h                pins + constants
   settings.h/.cpp         NVS-persisted settings
   motor_control.h/.cpp    DRV8833 PWM driver
-  hero_eyes.h/.cpp       procedural animated OLED face (6 moods)
+  hero_eyes.h/.cpp        procedural animated OLED face (6 moods)
   display_manager.h/.cpp  OLED state machine + screens
   wifi_helper.h/.cpp      SoftAP HERO hotspot + captive DNS + mDNS
-  camera_server.h/.cpp    OV5640 MJPEG stream + snapshot
+  camera_server.h/.cpp    OV5640 MJPEG stream + snapshot + start/stop
   web_server.h/.cpp       REST API + static asset server
   web_ui/                 browser UI (index.html, style.css, app.js)
   web_assets.h            generated PROGMEM copy of web_ui (tools/embed_web.py)
@@ -146,7 +160,7 @@ HERO/               Arduino sketch
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE).
+This project is licensed under the MIT License (`LICENSE`).
 
 ## Repository state
 

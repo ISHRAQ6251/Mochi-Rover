@@ -84,11 +84,17 @@ arduino-cli compile --fqbn esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi HERO
 ```
 
 `FlashSize=16M` and `PSRAM=opi` are important - the N16R8 board needs both.
-You should see:
-
+You should see a report similar to:
 ```
-Sketch uses 1124266 bytes (85%) of program storage space.
-Global variables use 60908 bytes (18%) of dynamic memory.
+Sketch uses ~1.1 MB (about 85%) of program storage space.
+Global variables use ~60 KB (about 18%) of dynamic memory.
+```
+
+Exact sizes shift slightly when the web UI is re-embedded. If you edited
+`HERO/web_ui/`, regenerate the PROGMEM header first:
+
+```bash
+python3 HERO/tools/embed_web.py HERO/web_ui HERO/web_assets.h
 ```
 
 ### 2.5 Alternative: build with the Arduino IDE
@@ -277,23 +283,32 @@ address plus the hotspot password. Change the access token later in Settings.
 ### 5.3 The control page (cockpit)
 
 - **Top bar** - the "HERO" logo, a status pill (CTRL = phone talking to the
-  rover, CAM = live video), then flashlight / mood / settings.
+  rover, CAM = live video), then three icons: camera start-stop, mood, and
+  settings (gear SVG). Flashlight is not in the header so the gear stays
+  tappable on a portrait phone.
+- **Camera button** - the stream starts automatically when you unlock. Tap the
+  camera icon to **stop the sensor** (the rover de-inits the OV5640, not just
+  the browser picture). The panel shows "Camera stopped". Tap again to start
+  it; the picture reconnects when the sensor is ready. Stopping also ends a
+  clip if one is recording.
 - **Video panel** - live stream, letterboxed to the camera aspect so nothing
   is cropped. Overlay: flip/refresh, photo, record (turns into a stop square
-  while recording; a red REC badge shows; tap again to finish).
+  while recording; a red REC badge shows; tap again to finish). Flip and
+  capture are disabled while the camera is stopped.
 - **Drive pad** - a cross of four hold-to-move buttons (forward / left / right
   / back). Combine them to drive in arcs, e.g. hold forward and left together.
-  Every command is acknowledged by the rover (the OLED shows driving-reaction
-  eyes). Mood and speed sit beside the pad.
+  Left and right turn the physical rover that way. Every command is
+  acknowledged by the rover (the OLED shows driving-reaction eyes). Mood and
+  speed sit beside the pad.
 - **Drive safety watchdog** - while you hold a button the app re-sends the drive
   command every 300 ms. If the connection drops, the browser tab is closed, or
   the app is killed, the rover receives no more commands and stops the motors on
   its own after ~1.5 s. You never need to "find" a stuck rover that is driving
   itself.
 - **Message to OLED** - type text and tap **Send**; the message appears on the
-  rover's OLED. Tap **✕** to clear it and restore the face.
-- **Mood** - dropdown with six moods: Happy, Angry, Curious, Dead, Sleepy, Wink.
-  The face shows the mood for about 4 seconds, then returns to the idle face.
+  rover's OLED. Tap the clear button to restore the face.
+- **Mood** - header popup or the dropdown: Happy, Angry, Curious, Dead, Sleepy,
+  Wink. The face shows the mood for about 4 seconds, then returns to idle.
 - **Speed** - slider from 0 to 255; controls how fast the motors run. Start low
   on a bench and raise it once you can control the rover.
 
@@ -312,18 +327,26 @@ address plus the hotspot password. Change the access token later in Settings.
 ### 5.5 Photos and clips
 
 - **Photo** - a still is captured at the live stream resolution (800x600 by
-  default) and downloads as `hero_<timestamp>.jpg`.
+  default) and downloads as `hero_<timestamp>.jpg`. The camera must be running.
 - **Clip** - recording is done on your phone's browser (WebM), so no SD card is
-  needed. It downloads as `hero_clip.webm` when you stop recording. Note that
-  the stream must be live (green CAM dot) for recording to work.
+  needed. It downloads as `hero_clip.webm` when you stop recording. The stream
+  must be live (green CAM dot). Stopping the camera also stops the recording.
 
 ### 5.6 Settings
 
-- **Theme** - dark / light.
+Open the gear in the top bar. On a portrait phone the gear is the right-most
+icon (camera, mood, then gear).
+
+- **Flashlight** - checkbox for the on-board LED. Takes effect immediately;
+  you do not need to tap Save. The rover remembers the last state.
+- **Theme** - dark / light. Stored in the browser, not on the rover.
 - **Reverse left / right motor** - flip a channel in software if a motor
-  (or the whole rover) drives the wrong way. Saved on the rover.
+  (or the whole rover) drives the wrong way. Saved on the rover when you tap
+  Save. Fresh NVS defaults both reverse flags to on (this chassis is wired
+  inverted).
 - **Left / right trim** - scale that motor's PWM (50-100%) if one N20 is
   faster than the other. Lower the faster side until forward tracks straight.
+  Saved on the rover.
 - **Change access token** - pick a new login password (min 4 characters). Write
   it down - it is stored on the rover.
 
@@ -344,12 +367,15 @@ board and wait a few seconds, then scan for Wi-Fi again.
 | OLED stays blank but serial prints `oled missing` | Check VCC=3.3 V, GND, SDA=40, SCL=41; some panels use I2C address 0x3D (the firmware tries both) |
 | OLED lights but text/face is smeared or unreadable | Reflash this build - frames are now drawn straight to the 128x64 SH1106 (the old canvas blit never cleared the panel) |
 | Serial monitor empty after `HERO boot` should appear | Enable **USB CDC On Boot**; 115200 baud; tap RST after opening the monitor |
-| No image in the video panel, CAM dot red | Check the camera ribbon is seated; verify GPIO settings match your board; try reducing XCLK to 10 MHz (see camera_server.cpp) |
+| No image in the video panel, CAM dot red | Check the camera ribbon is seated; verify GPIO settings match your board; try reducing XCLK to 10 MHz (see camera_server.cpp). If the overlay says "Camera stopped", tap the camera icon in the top bar to start the sensor |
+| Camera button does nothing / stream 503 | Wait a second after Start - the OV5640 re-inits in the Arduino loop, not instantly. Reflash if Stop only blanks the picture but the sensor stays warm (this build de-inits it) |
+| Settings gear missing or unreachable in portrait | Flashlight was moved out of the header into Settings. Top bar is camera, mood, gear. Reflash this build |
+| Flashlight not in the top bar | Open Settings (gear) and use the **On-board LED** checkbox; it toggles immediately |
 | Motors do not spin | Check DRV8833 power (VM/GND), `nSLEEP` tied to 3.3 V, and IN wires; try 100 on the speed slider |
 | One motor spins backwards | Settings > Reverse left/right motor (or swap that motor's two wires) |
 | A wheel turns one way but **never** the other (e.g. reverse and one turn only move the other wheel) | One motor input is not switching. Test each input over Wi-Fi without the serial monitor: open `http://192.168.4.1/api/pintest?token=hero&pin=0&speed=200` in the phone browser and cycle `pin` = 0,1,2,3. `pin` maps to 0=L_IN1/GPIO47, 1=L_IN2/GPIO14, 2=R_IN3/GPIO21, 3=R_IN4/GPIO42. Each call nudges one wheel for ~0.6 s and replies with the PWM `duty` read back from the pin. `duty:0` means the pin never attached in firmware (reflash / pin conflict); `duty:200` but no motion means a bad jumper, DRV8833 channel, or GPIO. |
 | Above test shows an input that never switches | First swap the two input wires of that motor channel at the DRV8833 (e.g. AIN1/AIN2) and re-test. If the dead direction follows the driver input rather than the ESP32 pin, the DRV8833 half-bridge is faulty - replace the driver. If instead the fault follows the ESP32 pin, move that one IN wire to a free header GPIO and update the matching `PIN_MOTOR_*` in `config.h`. Recommended free pins: **GPIO47** (alt GPIO38/39/48). Avoid GPIO0/3 (strapping), 19/20 (USB), 26-37 (flash/OPI PSRAM), 43/44 (UART) and 45/46 (strapping). On this build the test first pointed at `L_IN1`, but the wire-swap proved GPIO1 was fine and the DRV8833 was faulty; `L_IN1` was left on GPIO47 (`PIN_MOTOR_L_IN1 47`). |
-| Motors spin but the rover turns wrong way | Reverse both motors in Settings, or swap left/right channels (AO/BO) |
+| Motors spin but the rover turns the wrong way | This build maps Left to a left turn and Right to a right turn in the UI. If it is still wrong, reverse both motors in Settings, or swap left/right channels (AO/BO) |
 | Rover drifts left/right when going straight | Settings > lower Left/Right trim on the faster motor until it tracks straight |
 | Can't find the rover Wi-Fi | Stay near the board, wait ~10 s after power-on, join **HERO** / **hero1234** |
 | Lost the access token | Reflash the firmware to restore the default token `hero` |

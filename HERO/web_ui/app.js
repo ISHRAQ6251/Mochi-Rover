@@ -11,6 +11,7 @@ const state = {
   flashlight: false,
   flip: false,
   camLive: false,
+  camEnabled: true,
   reverseLeft: false,
   reverseRight: false,
   trimLeft: 100,
@@ -91,30 +92,88 @@ $("authBtn").addEventListener("click", unlock);
 $("authToken").addEventListener("keydown", (e) => { if (e.key === "Enter") unlock(); });
 
 /* ---------------- video ---------------- */
+let videoRetry = 0;
+let camBusy = false;
+
+function setStreamUi(on) {
+  const b = $("streamBtn");
+  if (!b) return;
+  b.classList.toggle("on", !!on);
+  b.classList.toggle("stopped", !on);
+  b.setAttribute("aria-pressed", on ? "true" : "false");
+  const label = on ? "Stop camera" : "Start camera";
+  b.title = label;
+  b.setAttribute("aria-label", label);
+}
+
 function markCam(live) {
   state.camLive = !!live;
   const d = $("dotCam");
   if (d) d.classList.toggle("on", state.camLive);
   const off = $("videoOffline");
-  if (off) off.classList.toggle("hidden", state.camLive);
+  if (off) {
+    off.classList.toggle("hidden", state.camLive);
+    const span = off.querySelector("span");
+    const spin = off.querySelector(".spinner");
+    if (span) span.textContent = state.camEnabled ? "Connecting to camera..." : "Camera stopped";
+    if (spin) spin.classList.toggle("hidden", !state.camEnabled);
+  }
 }
 
 function startVideo() {
+  state.camEnabled = true;
+  setStreamUi(true);
   const v = $("video");
+  if (videoRetry) { clearTimeout(videoRetry); videoRetry = 0; }
   v.onload = () => { markCam(true); };
   v.onerror = () => {
     markCam(false);
-    setTimeout(() => { v.src = "/stream?t=" + Date.now(); }, 2500);
+    if (!state.camEnabled) return;
+    videoRetry = setTimeout(() => { v.src = "/stream?t=" + Date.now(); }, 400);
   };
+  markCam(false);
   v.src = "/stream?t=" + Date.now();
 }
+
+function stopVideoLocal() {
+  state.camEnabled = false;
+  if (videoRetry) { clearTimeout(videoRetry); videoRetry = 0; }
+  if (recorder) stopRecording();
+  const v = $("video");
+  v.onload = null;
+  v.onerror = null;
+  v.removeAttribute("src");
+  v.src = "";
+  markCam(false);
+  setStreamUi(false);
+}
+
 function refreshVideo() {
+  if (!state.camEnabled) return;
   const v = $("video");
   markCam(false);
   v.src = "/stream?t=" + Date.now();
 }
 
+$("streamBtn").addEventListener("click", async () => {
+  if (camBusy) return;
+  camBusy = true;
+  try {
+    if (state.camEnabled) {
+      stopVideoLocal();
+      await api("/api/camera", { on: 0 });
+      return;
+    }
+    const r = await api("/api/camera", { on: 1 });
+    if (r.ok) startVideo();
+    else { setStreamUi(false); markCam(false); }
+  } finally {
+    camBusy = false;
+  }
+});
+
 $("flipBtn").addEventListener("click", async () => {
+  if (!state.camEnabled) return;
   const next = !state.flip;
   const r = await api("/api/camera", { flip: next ? 1 : 0 });
   if (r.ok) state.flip = next;
@@ -122,6 +181,7 @@ $("flipBtn").addEventListener("click", async () => {
 });
 
 $("photoBtn").addEventListener("click", async () => {
+  if (!state.camEnabled) return;
   try {
     const res = await fetch("/capture?t=" + Date.now(), { headers: authHeaders() });
     if (!res.ok) return;
@@ -174,6 +234,7 @@ function stopRecording() {
 
 $("recBtn").addEventListener("click", () => {
   if (recorder) { stopRecording(); return; }
+  if (!state.camEnabled) return;
   const v = $("video");
   if (!v.complete || v.naturalWidth === 0) return;
 
@@ -219,8 +280,8 @@ function computeDrive() {
   let throttle = 0, steering = 0;
   if (held.has("up")) throttle += sp;
   if (held.has("down")) throttle -= sp;
-  if (held.has("left")) steering -= sp;
-  if (held.has("right")) steering += sp;
+  if (held.has("left")) steering += sp;
+  if (held.has("right")) steering -= sp;
   state.throttle = throttle;
   state.steering = steering;
   api("/api/drive", { throttle, steering });
@@ -377,8 +438,8 @@ $("msgClear").addEventListener("click", async () => {
 /* ---------------- flash ---------------- */
 function setFlashUi(on) {
   state.flashlight = !!on;
-  $("flashBtn").classList.toggle("on", state.flashlight);
-  $("flashBtn").setAttribute("aria-pressed", state.flashlight ? "true" : "false");
+  const t = $("flashToggle");
+  if (t) t.checked = state.flashlight;
 }
 
 async function setFlashlight(on) {
@@ -387,7 +448,7 @@ async function setFlashlight(on) {
   const r = await api("/api/flash", { on: state.flashlight ? 1 : 0 });
   if (!r.ok) setFlashUi(prev);
 }
-$("flashBtn").addEventListener("click", () => setFlashlight(!state.flashlight));
+$("flashToggle").addEventListener("change", () => setFlashlight($("flashToggle").checked));
 
 /* ---------------- settings modal ---------------- */
 function clampTrim(v) {
@@ -410,6 +471,7 @@ let lastFocus = null;
 function openSettings() {
   lastFocus = document.activeElement;
   $("setTheme").value = localStorage.getItem("hero_theme") || "dark";
+  setFlashUi(state.flashlight);
   $("revLeft").checked = !!state.reverseLeft;
   $("revRight").checked = !!state.reverseRight;
   syncTrimUi();
@@ -524,6 +586,10 @@ async function pollState() {
   const s = r.data;
   state.ip = s.ip;
   state.flip = !!s.camFlip;
+  if (!camBusy && typeof s.camRunning === "boolean" && s.camRunning !== state.camEnabled) {
+    if (s.camRunning) startVideo();
+    else stopVideoLocal();
+  }
   state.flashlight = !!s.flashlightOn;
   state.messageActive = !!s.messageActive;
   updateMsgState(state.messageActive);
@@ -557,7 +623,8 @@ function initCockpit(data) {
   updateMsgState(!!data.messageActive);
   setFlashUi(state.flashlight);
   $("dotCtrl").classList.toggle("on", true);
-  startVideo();
+  if (data.camRunning === false) stopVideoLocal();
+  else startVideo();
   if (!pollTimer) pollTimer = setInterval(pollState, 3000);
 }
 

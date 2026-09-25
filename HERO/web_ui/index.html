@@ -31,14 +31,14 @@
         <span class="dot" id="dotCam" aria-hidden="true"></span><span class="dot-label">CAM</span>
       </div>
       <div class="top-actions">
-        <button id="flashBtn" class="icon" title="Flashlight" aria-label="Flashlight" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h7l-1 8 10-14h-7l0-6z"/></svg>
+        <button id="streamBtn" class="icon on" title="Stop camera" aria-label="Stop camera" aria-pressed="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h12a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"/><path d="M17 10l6-3v10l-6-3z"/><path class="cam-slash" d="M3 3l18 18"/></svg>
         </button>
         <button id="moodBtn" class="icon" title="Mood" aria-label="Mood" aria-haspopup="menu" aria-expanded="false" aria-controls="moodPopup">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="9" cy="11" r="1.4" fill="currentColor" stroke="none"/><circle cx="15" cy="11" r="1.4" fill="currentColor" stroke="none"/><path d="M8.5 15c1.2 1.4 5.8 1.4 7 0"/></svg>
         </button>
         <button id="settingsBtn" class="icon" title="Settings" aria-label="Settings" aria-haspopup="dialog">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3V20.5M4.9 7.1l1.6 1.6M17.5 15.3l1.6 1.6M3.5 12h2.2M18.3 12H20.5M4.9 16.9l1.6-1.6M17.5 8.7l1.6-1.6"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
       </div>
     </header>
@@ -130,6 +130,8 @@
         </button>
       </div>
       <p class="muted settings-hint">Join Wi-Fi <strong>HERO</strong> (password <strong>hero1234</strong>) then open <strong>http://192.168.4.1</strong></p>
+      <label>Flashlight</label>
+      <label class="toggle-row"><input id="flashToggle" type="checkbox"> On-board LED</label>
       <label for="setTheme">Theme</label>
       <select id="setTheme">
         <option value="dark">Dark</option>

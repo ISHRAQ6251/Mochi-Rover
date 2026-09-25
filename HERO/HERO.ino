@@ -87,6 +87,7 @@ void loop() {
     wifiHelper.update();
     displayMgr.update(millis());
     motors.update();
+    cameraServer.update();
     motorPinTest();
     delay(10);
 }
