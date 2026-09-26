@@ -9,7 +9,18 @@ static const uint8_t kMotorPins[4] = {
     PIN_MOTOR_L_IN1, PIN_MOTOR_L_IN2, PIN_MOTOR_R_IN3, PIN_MOTOR_R_IN4
 };
 
+void MotorControl::lock() {
+    if (!_mux) _mux = xSemaphoreCreateMutex();
+    if (_mux) xSemaphoreTake(_mux, portMAX_DELAY);
+}
+
+void MotorControl::unlock() {
+    if (_mux) xSemaphoreGive(_mux);
+}
+
 void MotorControl::begin() {
+    lock();
+    unlock();
     // New ESP32-core (v3.x) LEDC API. The Arduino core derives the timer as
     // timer = (channel / 2) % 4, so channels 0..3 use timers 0..1 only. The
     // camera XCLK uses native-IDF channel 5 = timer 2. Do NOT use channel 4:
@@ -30,7 +41,7 @@ void MotorControl::begin() {
 void MotorControl::drive(int16_t throttle, int16_t steering) {
     throttle = constrain(throttle, -255, 255);
     steering = constrain(steering, -255, 255);
-
+    lock();
     _throttle = throttle;
     _steering = steering;
     _lastCmdAt = millis();
@@ -41,6 +52,7 @@ void MotorControl::drive(int16_t throttle, int16_t steering) {
 
     setLeft(left);
     setRight(right);
+    unlock();
 }
 
 static int16_t scaleTrim(int16_t speed, uint8_t trim) {
@@ -63,14 +75,36 @@ void MotorControl::setRight(int16_t speed) {
 }
 
 void MotorControl::reapply() {
-    if (_throttle != 0 || _steering != 0) drive(_throttle, _steering);
+    lock();
+    int16_t t = _throttle;
+    int16_t s = _steering;
+    unlock();
+    if (t != 0 || s != 0) drive(t, s);
+}
+
+int16_t MotorControl::throttle() {
+    lock();
+    int16_t t = _throttle;
+    unlock();
+    return t;
+}
+
+int16_t MotorControl::steering() {
+    lock();
+    int16_t s = _steering;
+    unlock();
+    return s;
 }
 
 uint32_t MotorControl::testPin(uint8_t index, int16_t value) {
     if (index > 3) return 0;
-    stop();  // clear any normal drive so the test is unambiguous
-
     value = constrain(value, -255, 255);
+    lock();
+    setLeft(0);
+    setRight(0);
+    _throttle = 0;
+    _steering = 0;
+    _lastCmdAt = millis();
     for (uint8_t i = 0; i < 4; i++) ledcWrite(kMotorPins[i], 0);
 
     if (value != 0) {
@@ -80,9 +114,9 @@ uint32_t MotorControl::testPin(uint8_t index, int16_t value) {
     } else {
         _testIndex = -1;
     }
-    // ledcRead() returns 0 when the pin was never attached to an LEDC channel,
-    // which distinguishes a firmware/attach failure from a wiring one.
-    return ledcRead(kMotorPins[index]);
+    uint32_t duty = ledcRead(kMotorPins[index]);
+    unlock();
+    return duty;
 }
 
 void MotorControl::setPin(uint8_t inA, uint8_t inB, int16_t speed) {
@@ -100,15 +134,18 @@ void MotorControl::setPin(uint8_t inA, uint8_t inB, int16_t speed) {
 }
 
 void MotorControl::stop() {
+    lock();
     setLeft(0);
     setRight(0);
     _throttle = 0;
     _steering = 0;
     _lastCmdAt = millis();
     _testIndex = -1;
+    unlock();
 }
 
 void MotorControl::update() {
+    lock();
     // Per-pin bring-up test auto-coasts so a forgotten test cannot run away.
     if (_testIndex >= 0 && (millis() - _testAt > MOTOR_TEST_MS)) {
         for (uint8_t i = 0; i < 4; i++) ledcWrite(kMotorPins[i], 0);
@@ -117,8 +154,15 @@ void MotorControl::update() {
 
     // Drive watchdog: a held button keeps a 300 ms heartbeat coming from the
     // UI, so any longer silence means the client is gone -> coast the motors.
+    // Coast in-place under the same lock so a drive() that arrived after we
+    // decided to stop cannot be wiped by a nested stop() call.
     if ((_throttle != 0 || _steering != 0) &&
         _lastCmdAt && (millis() - _lastCmdAt > DRIVE_WATCHDOG_MS)) {
-        stop();
+        setLeft(0);
+        setRight(0);
+        _throttle = 0;
+        _steering = 0;
+        _testIndex = -1;
     }
+    unlock();
 }

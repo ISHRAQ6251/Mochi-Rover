@@ -43,17 +43,21 @@ public:
     // never keeps running after the app disconnects or is closed.
     void update();
 
-    int16_t throttle() const { return _throttle; }
-    int16_t steering() const { return _steering; }
+    int16_t throttle();
+    int16_t steering();
 
 private:
     void setPin(uint8_t inA, uint8_t inB, int16_t speed);
+
+    void lock();
+    void unlock();
 
     int16_t _throttle = 0;
     int16_t _steering = 0;
     uint32_t _lastCmdAt = 0;
     int8_t _testIndex = -1;      // active per-pin test, -1 = none
     uint32_t _testAt = 0;        // when the per-pin test was started
+    SemaphoreHandle_t _mux = nullptr;
 };
 
 extern MotorControl motors;

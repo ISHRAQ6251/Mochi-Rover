@@ -69,7 +69,7 @@ stole that port and camera probe failed with 0x103.
 - Web server = Library Manager **ESP Async WebServer** 3.12.1 + **Async TCP**
   3.5.0 (maintainer ESP32Async) for chunked MJPEG. Not the lacamera/ESPHome
   `ESPAsyncWebServer` 3.1.0 listing (that one needs a mbedTLS `_ret` patch).
-- OV5640: PIXFORMAT_JPEG, XCLK 20 MHz, fb in PSRAM, fb_count 2, grab LATEST;
+- OV5640: PIXFORMAT_JPEG, XCLK 20 MHz, fb in PSRAM, fb_count 3, grab LATEST;
   default stream SVGA (800x600), quality from NVS (default 12), all adjustable.
 - OLED face drawn procedurally with Adafruit_GFX + SH1106 I2C (no bitmaps).
 - USER-CONFIRMED: captures go to the browser (stills via /capture at the live
@@ -83,10 +83,12 @@ stole that port and camera probe failed with 0x103.
 - Drive mixing: firmware `left = throttle + steering`, `right = throttle -
   steering`. The cockpit sends Left as positive steering and Right as negative
   so the physical rover turns the labelled way.
-- Camera: boots running; cockpit auto-opens `/stream` on unlock. Header
-  start/stop POSTs `/api/camera` `on=1/0`. Init/deinit run in
+- Camera: stays off at boot (no `esp_camera_init` until `/api/camera` `on=1`).
+  Header start/stop POSTs `/api/camera` `on=1/0`. Init/deinit run in
   `cameraServer.update()` from `loop()`, not the async web task. `/api/state`
-  `camRunning` is `wanted()`, not the momentary `running()` flag.
+  `camRunning` is `wanted()`, not the momentary `running()` flag. A mutex
+  serializes init/deinit with frame get/return. MJPEG copies JPEG bytes into
+  PSRAM then returns the fb immediately (`fb_count` 3).
 - MJPEG: one `StreamPacketizer` per `/stream` client. `/api/state` and
   `/api/info` use fixed `snprintf` buffers (heap-free poll path).
 - Drive safety: motors stop when controls are released / on disconnect. The
@@ -254,17 +256,29 @@ override lasts ~4 s (Wink 1.5 s) then returns to idle; idle blinks every
 
 - [x] **Cockpit camera + turn + portrait (2026-09-25)**: UI left/right
       steering signs swapped so Left turns left (firmware mix unchanged).
-      Settings button is a gear SVG (no emoji). Header camera start/stop
-      POSTs `/api/camera` `on=0/1`; Stop de-inits the OV5640 after streams
-      and snapshots release buffers; Start re-inits from `loop()`. Stream
-      auto-connects on unlock. `/stream` stays open with multipart whitespace
-      while the sensor is re-initing so Start does not 503. Flashlight moved
+       Settings button is a gear SVG (no emoji). Header camera start/stop
+       POSTs `/api/camera` `on=0/1`; Stop de-inits the OV5640 after streams
+       and snapshots release buffers; Start re-inits from `loop()`.
+       `/stream` stays open with multipart whitespace
+       while the sensor is re-initing so Start does not 503. Flashlight moved
       out of the cramped portrait header into Settings as an immediate
       checkbox; top bar is camera + mood + gear.
 
+- [x] **Drive pad layout, camera-off boot, stream robustness (2026-09-26)**:
+      Cockpit 3-column grid: Mood/Speed spans top-left two thirds, Up is
+      top-right, Left/Right/Down share the second row so Down sits under Up
+      (no flex-wrap). Camera stays off at boot; UI default is
+       "Camera stopped". Stream path memcpy-batches MJPEG segments, copies
+       JPEG out of the DMA fb into PSRAM (realloc never holds a live fb),
+       uses 3 frame buffers, and mutexes init/deinit vs fb_get. `/capture`
+       uses the same copy path. Motor LEDC + watchdog share a mutex; NVS cam
+       res/quality are clamped; `/api/state` and `/api/info` copy off the
+       stack into a String; UI drive POSTs are single-flight so stop cannot
+       lose a race to a stale drive.
+
 ## In Progress
 
-- None. The rover is in working shape on the user's hardware.
+- None. Rebuild + reflash needed for firmware/UI on device.
 
 ## Open Questions For The User
 

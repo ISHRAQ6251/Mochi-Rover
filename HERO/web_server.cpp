@@ -58,7 +58,7 @@ static void jsonEscape(char* dst, size_t len, const char* s) {
     dst[o] = 0;
 }
 
-static String stateJson() {
+static void sendState(AsyncWebServerRequest* request) {
     char ip[16];
     wifiHelper.ip(ip, sizeof(ip));
     char message[140];
@@ -84,7 +84,8 @@ static String stateJson() {
              ip,
              displayMgr.messageActive() ? "true" : "false",
              message);
-    return String(buf);
+    // Copy into a String so the async response owns the bytes (buf is stack).
+    request->send(200, "application/json", String(buf));
 }
 
 // Serial-free bring-up test: GET /api/pintest?token=hero&pin=1&speed=200
@@ -132,7 +133,7 @@ void WebServerMgr::begin() {
                  "{\"ok\":true,\"apMode\":true,\"connected\":true,"
                  "\"ip\":\"%s\",\"hostname\":\"" HOSTNAME "\"}",
                  ip);
-        request->send(200, "application/json", buf);
+        request->send(200, "application/json", String(buf));
     });
 
     _server.on("/api/auth", HTTP_POST, [](AsyncWebServerRequest* request) {
@@ -147,7 +148,7 @@ void WebServerMgr::begin() {
     // ---------- protected endpoints ----------
     _server.on("/api/state", HTTP_GET, [](AsyncWebServerRequest* request) {
         if (!authorized(request)) return unauthorized(request);
-        request->send(200, "application/json", stateJson());
+        sendState(request);
     });
 
     _server.on("/api/drive", HTTP_POST, [](AsyncWebServerRequest* request) {

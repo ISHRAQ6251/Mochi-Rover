@@ -11,7 +11,7 @@ const state = {
   flashlight: false,
   flip: false,
   camLive: false,
-  camEnabled: true,
+  camEnabled: false,
   reverseLeft: false,
   reverseRight: false,
   trimLeft: 100,
@@ -274,6 +274,30 @@ $("recBtn").addEventListener("click", () => {
 /* ---------------- drive (4-button pad) ---------------- */
 const held = new Set();
 let driveKeepAlive = null;
+let driveBusy = false;
+let driveQueued = null;
+
+function flushDrive() {
+  if (driveBusy || !driveQueued) return;
+  driveBusy = true;
+  const q = driveQueued;
+  driveQueued = null;
+  const p = q.stop ? api("/api/stop", {}) : api("/api/drive", { throttle: q.throttle, steering: q.steering });
+  Promise.resolve(p).finally(() => {
+    driveBusy = false;
+    if (driveQueued) flushDrive();
+  });
+}
+
+function queueDrive(throttle, steering) {
+  driveQueued = { stop: false, throttle, steering };
+  flushDrive();
+}
+
+function queueStop() {
+  driveQueued = { stop: true };
+  flushDrive();
+}
 
 function computeDrive() {
   const sp = state.speedScale;
@@ -284,7 +308,7 @@ function computeDrive() {
   if (held.has("right")) steering -= sp;
   state.throttle = throttle;
   state.steering = steering;
-  api("/api/drive", { throttle, steering });
+  queueDrive(throttle, steering);
 }
 
 // While any button is held, re-send the drive command every 300 ms. The rover
@@ -309,7 +333,7 @@ function stopMotorsLocal() {
   });
   state.throttle = 0;
   state.steering = 0;
-  if (state.token) api("/api/stop", {});
+  if (state.token) queueStop();
 }
 
 document.addEventListener("visibilitychange", () => {
@@ -336,7 +360,7 @@ function bindCtrl(id, key) {
     if (held.size === 0) {
       state.throttle = 0;
       state.steering = 0;
-      api("/api/stop", {});
+      queueStop();
       stopDriveKeepAlive();
     } else {
       computeDrive();
@@ -623,8 +647,8 @@ function initCockpit(data) {
   updateMsgState(!!data.messageActive);
   setFlashUi(state.flashlight);
   $("dotCtrl").classList.toggle("on", true);
-  if (data.camRunning === false) stopVideoLocal();
-  else startVideo();
+  if (data.camRunning === true) startVideo();
+  else stopVideoLocal();
   if (!pollTimer) pollTimer = setInterval(pollState, 3000);
 }
 

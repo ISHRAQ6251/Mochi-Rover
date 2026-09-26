@@ -18,12 +18,11 @@ message-to-OLED box.
 
 ## Features
 
-- **Live MJPEG video** streamed to the phone (SVGA 800x600 default, PSRAM
+- **Live MJPEG video** streamed to the phone (SVGA 800x600 default, 3 PSRAM
   frame buffers, low-latency grab mode). Several phones can watch at once;
   each `/stream` client has its own packetizer.
-- **Camera start/stop**: a header button de-inits the OV5640 to free the
-  sensor, and starts it again from the Arduino `loop()`. The stream opens
-  automatically when the cockpit unlocks.
+- **Camera start/stop**: the sensor stays off at boot. A header button inits
+  the OV5640 from the Arduino `loop()` and de-inits it on stop.
 - **Photo & clip capture**: stills at the live stream size (SVGA default) and
   client-side WebM clips - no SD card required.
 - **Differential drive**: hold-to-move steering/throttle pads with arcade
@@ -122,10 +121,10 @@ python3 HERO/tools/embed_web.py HERO/web_ui HERO/web_assets.h
    **`hero1234`**).
 2. Join that network on your phone and open `http://192.168.4.1`.
 3. Unlock with the access token (default **`hero`**).
-4. Drive with the d-pad. The live stream starts on unlock; use the camera
-   button in the top bar to stop or start the sensor. Flashlight, motor reverse
-   and trim live in Settings (gear). Capture from the video overlay, send OLED
-   messages from the bottom card.
+4. Drive with the pad (Mood/Speed top-left two thirds, Up top-right, Down
+   under Up). The camera stays off until you tap the camera button.
+   Flashlight, motor reverse and trim live in Settings (gear). Capture from
+   the video overlay, send OLED messages from the bottom card.
 
 See the User Manual (`USER_MANUAL.md`) for the full cockpit tour.
 

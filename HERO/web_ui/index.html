@@ -31,7 +31,7 @@
         <span class="dot" id="dotCam" aria-hidden="true"></span><span class="dot-label">CAM</span>
       </div>
       <div class="top-actions">
-        <button id="streamBtn" class="icon on" title="Stop camera" aria-label="Stop camera" aria-pressed="true">
+        <button id="streamBtn" class="icon stopped" title="Start camera" aria-label="Start camera" aria-pressed="false">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h12a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"/><path d="M17 10l6-3v10l-6-3z"/><path class="cam-slash" d="M3 3l18 18"/></svg>
         </button>
         <button id="moodBtn" class="icon" title="Mood" aria-label="Mood" aria-haspopup="menu" aria-expanded="false" aria-controls="moodPopup">
@@ -46,8 +46,8 @@
     <div class="video-panel" id="videoPanel">
       <img id="video" alt="Live camera feed">
       <div id="videoOffline" class="video-offline">
-        <div class="spinner" aria-hidden="true"></div>
-        <span>Connecting to camera...</span>
+        <div class="spinner hidden" aria-hidden="true"></div>
+        <span>Camera stopped</span>
       </div>
       <div class="video-actions">
         <button id="flipBtn" class="vbtn" title="Flip / refresh" aria-label="Flip camera">
@@ -64,20 +64,6 @@
     </div>
 
     <div class="cockpit">
-      <div class="dpad" role="group" aria-label="Drive pad">
-        <button id="btnUp" class="ctrl" title="Forward" aria-label="Forward">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14l6-6 6 6"/></svg>
-        </button>
-        <button id="btnLeft" class="ctrl" title="Left" aria-label="Left">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>
-        </button>
-        <button id="btnRight" class="ctrl" title="Right" aria-label="Right">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>
-        </button>
-        <button id="btnDown" class="ctrl" title="Back" aria-label="Back">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10l6 6 6-6"/></svg>
-        </button>
-      </div>
       <div class="cockpit-side">
         <div class="side-row">
           <label class="row-label" for="moodSelect">Mood</label>
@@ -97,6 +83,18 @@
           <output id="speedVal">255</output>
         </div>
       </div>
+      <button id="btnUp" class="ctrl" title="Forward" aria-label="Forward">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 14l6-6 6 6"/></svg>
+      </button>
+      <button id="btnLeft" class="ctrl" title="Left" aria-label="Left">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6l-6 6 6 6"/></svg>
+      </button>
+      <button id="btnRight" class="ctrl" title="Right" aria-label="Right">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6l6 6-6 6"/></svg>
+      </button>
+      <button id="btnDown" class="ctrl" title="Back" aria-label="Back">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 10l6 6 6-6"/></svg>
+      </button>
     </div>
 
     <div class="deck">

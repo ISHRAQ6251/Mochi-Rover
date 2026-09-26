@@ -22,7 +22,8 @@ moods, driving and messages.
     downloaded as `hero_<timestamp>.jpg`.
   - Clip: recorded client-side with MediaRecorder (VP9/VP8 WebM) by drawing the
     stream to a hidden canvas; downloaded as `hero_clip.webm`. No SD card used.
-- Differential drive: cross d-pad (forward / left / right / back), speed slider
+- Differential drive: Mood/Speed panel spans the top-left two thirds, Up is
+  top-right (same column as Down), Left/Right/Down share the second row; speed slider
   (0-255), stop on release, arcade-style throttle + steering mixing on the DRV8833.
   The cockpit maps Left to positive steering and Right to negative steering so
   the physical rover turns the correct way; firmware mixing is unchanged
@@ -58,9 +59,11 @@ Smartphone-first dark UI with a light theme option (saved in the browser):
 - Video panel fills remaining portrait height and keeps the sensor aspect
   (`object-fit: contain`). Overlay: flip, photo, record. While the sensor is
   stopped the panel shows "Camera stopped" (no spinner).
-- Cross d-pad (forward / left / right / back) plus mood + speed on the side.
-  Hold two directions together for arcs. The stream auto-connects when the
-  cockpit unlocks unless `/api/state` reports `camRunning: false`.
+- Drive pad: 3-column CSS grid. Mood/Speed spans the top-left two columns; Up
+  is top-right; Left, Right and Down share the second row so Down sits under Up
+  (not a wrap). Hold two directions
+  together for arcs. The camera stays off until you tap Start; `/api/state`
+  reports `camRunning: false` at boot.
 - Bottom card: "Message to OLED..." input with inline Send and a clear button,
   plus a live status region for screen readers.
 - Mood popup: a white rounded card under the header with the six moods.
@@ -118,7 +121,7 @@ Each side is then scaled by trim (50-100%) and optionally sign-flipped by
 `reverseLeft` / `reverseRight` (both default `true` on this wiring). Motor PWM
 uses Arduino LEDC channels 0-3 (timers 0-1) at 20 kHz, 8-bit.
 
-Cockpit d-pad while a direction is held (values scaled by the speed slider):
+Cockpit drive pad while a direction is held (values scaled by the speed slider):
 
 - Forward: `throttle = +speed`
 - Back: `throttle = -speed`
@@ -161,19 +164,21 @@ start and gaze in the steering direction.
 
 ## Camera notes
 
-- Default stream: SVGA (800x600), JPEG quality 12, 2 PSRAM frame buffers,
-  `CAMERA_GRAB_LATEST`, XCLK 20 MHz.
-- Boot calls `cameraServer.begin()` so the sensor is running before the first
-  phone connects. The cockpit then opens `/stream` on unlock.
+- Default stream: SVGA (800x600), JPEG quality 12, 3 PSRAM frame buffers,
+  `CAMERA_GRAB_LATEST`, XCLK 20 MHz. Quality is unchanged; extra fb and
+  memcpy-batched MJPEG copies cut CPU without shrinking the JPEG.
+- Boot does **not** init the sensor. `wanted()` is false until the cockpit
+  POSTs `/api/camera` `on=1`. Init then runs in `update()` from `loop()`.
 - `CameraServer::start()` / `stop()` only set `_wantRunning`. Heavy
   `esp_camera_init` / `esp_camera_deinit` run in `update()` from `loop()`.
   De-init waits until `_streamClients == 0` and no snapshot buffer is held.
+  A mutex serializes init/deinit with `fb_get` / `fb_return`.
 - `/stream` uses one `StreamPacketizer` per client (`shared_ptr` co-owned by
-  the chunked filler and the disconnect hook). An in-flight frame buffer is
-  returned if the phone leaves mid-frame.
-- `/capture` streams JPEG bytes from the PSRAM frame buffer (no copy onto the
-  internal heap). It drops one stale `GRAB_LATEST` frame, then takes the next,
-  without spinning for seconds on the async task.
+  the chunked filler and the disconnect hook). Each frame is memcpy'd out of
+  the camera buffer into PSRAM, then the fb is returned immediately.
+- `/capture` memcpy's JPEG into PSRAM (same path as the stream) and returns the
+  camera fb immediately, then chunk-sends the copy. It does not hold a live DMA
+  buffer across TCP writes.
 - The LEDC channels are deliberately split: motor PWM uses the Arduino LEDC
   wrapper (channels 0-3, timers 0-1) while the camera XCLK uses the native IDF
   LEDC driver on channel 5 / timer 2, so they can never collide. Channels 1-4

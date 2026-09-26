@@ -18,8 +18,8 @@ void Settings::load() {
         data.authToken[sizeof(data.authToken) - 1] = 0;
     }
 
-    data.camResolution = prefs.getInt(NVS_KEY_RES, data.camResolution);
-    data.camQuality   = prefs.getInt(NVS_KEY_QUALITY, data.camQuality);
+    data.camResolution = constrain(prefs.getInt(NVS_KEY_RES, data.camResolution), 0, 13);
+    data.camQuality   = constrain(prefs.getInt(NVS_KEY_QUALITY, data.camQuality), 10, 63);
     data.camFlip      = prefs.getBool(NVS_KEY_FLIP, data.camFlip);
     data.flashlightOn = prefs.getBool(NVS_KEY_FLASH, data.flashlightOn);
     data.oledAnim     = prefs.getBool(NVS_KEY_OLEDANIM, data.oledAnim);

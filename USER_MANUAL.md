@@ -286,20 +286,21 @@ address plus the hotspot password. Change the access token later in Settings.
   rover, CAM = live video), then three icons: camera start-stop, mood, and
   settings (gear SVG). Flashlight is not in the header so the gear stays
   tappable on a portrait phone.
-- **Camera button** - the stream starts automatically when you unlock. Tap the
-  camera icon to **stop the sensor** (the rover de-inits the OV5640, not just
-  the browser picture). The panel shows "Camera stopped". Tap again to start
-  it; the picture reconnects when the sensor is ready. Stopping also ends a
-  clip if one is recording.
+- **Camera button** - the sensor is **off** at boot (panel shows "Camera
+  stopped", no spinner). Tap the camera icon to **start the sensor** (the
+  rover inits the OV5640 from `loop()`, then the picture connects). Tap again
+  to **stop the sensor** (de-init, not just the browser picture). Stopping
+  also ends a clip if one is recording.
 - **Video panel** - live stream, letterboxed to the camera aspect so nothing
   is cropped. Overlay: flip/refresh, photo, record (turns into a stop square
   while recording; a red REC badge shows; tap again to finish). Flip and
   capture are disabled while the camera is stopped.
-- **Drive pad** - a cross of four hold-to-move buttons (forward / left / right
-  / back). Combine them to drive in arcs, e.g. hold forward and left together.
-  Left and right turn the physical rover that way. Every command is
-  acknowledged by the rover (the OLED shows driving-reaction eyes). Mood and
-  speed sit beside the pad.
+- **Drive pad** - Mood and Speed span the top-left two thirds; the Up button
+  is top-right (same column as Down); Left, Right and Down sit in a row
+  underneath. Combine directions to drive
+  in arcs, e.g. hold Up and Left together. Left and right turn the physical
+  rover that way. Every command is acknowledged by the rover (the OLED shows
+  driving-reaction eyes).
 - **Drive safety watchdog** - while you hold a button the app re-sends the drive
   command every 300 ms. If the connection drops, the browser tab is closed, or
   the app is killed, the rover receives no more commands and stops the motors on

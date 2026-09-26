@@ -52,11 +52,10 @@ void setup() {
     Serial.printf("wifi AP ip=%s\n", ip);
     displayMgr.setConnected(ip);
 
-    if (cameraServer.begin()) {
-        Serial.println("camera ok");
-    } else {
-        Serial.println("camera init failed - stream unavailable");
-    }
+    // Camera stays off until the cockpit POSTs /api/camera on=1.
+    // Init/deinit run in cameraServer.update() from loop().
+    cameraServer.update();
+    Serial.println("camera idle (start from UI)");
 
     webServerMgr.begin();    // REST API + web UI + MJPEG stream
     Serial.println("web server ok");
